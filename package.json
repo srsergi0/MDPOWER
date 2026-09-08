@@ -1,7 +1,7 @@
 {
-	"name": "markdown-reader",
+	"name": "mdpower",
 	"version": "1.0.2",
-	"description": "Native Markdown reader with file association support",
+	"description": "MDPOWER - High-performance native Markdown reader & power viewer",
 	"scripts": {
 		"start": "vite build && electrobun dev",
 		"dev": "electrobun dev --watch",

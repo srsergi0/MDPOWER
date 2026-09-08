@@ -6,8 +6,8 @@ $appPath = "$PSScriptRoot\..\node_modules\.bin\electrobun.cmd"
 if (-not (Test-Path $appPath)) {
   # Try to find the app exe in the build output
   $possiblePaths = @(
-    "$PSScriptRoot\..\dist\MarkdownReader.exe",
-    "$PSScriptRoot\..\dist\markdown-reader.exe"
+    "$PSScriptRoot\..\dist\MDPOWER.exe",
+    "$PSScriptRoot\..\dist\mdpower.exe"
   )
   foreach ($p in $possiblePaths) {
     if (Test-Path $p) {
@@ -22,8 +22,8 @@ if (-not (Test-Path $appPath)) {
   Write-Host "After building, update the path in registry or re-run this script." -ForegroundColor Yellow
 }
 
-$progId = "MarkdownReader.md"
-$appName = "Markdown Reader"
+$progId = "MDPOWER.md"
+$appName = "MDPOWER"
 
 # Create ProgID
 New-Item -Path "HKCU:\Software\Classes\$progId" -Force | Out-Null

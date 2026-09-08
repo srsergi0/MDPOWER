@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡️ Markdown Reader
+# ⚡️ MDPOWER
 
 ### **The Ultra-Fast, Anti-Electron Markdown Viewer**
 
@@ -8,8 +8,8 @@
 
 <br />
 
-[![GitHub Release](https://img.shields.io/github/v/release/srsergi0/markdown-reader?style=for-the-badge&color=22c55e)](https://github.com/srsergi0/markdown-reader/releases)
-[![GitHub Stars](https://img.shields.io/github/stars/srsergi0/markdown-reader?style=for-the-badge&color=facc15)](https://github.com/srsergi0/markdown-reader/stargazers)
+[![GitHub Release](https://img.shields.io/github/v/release/srsergi0/MDPOWER?style=for-the-badge&color=22c55e)](https://github.com/srsergi0/MDPOWER/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/srsergi0/MDPOWER?style=for-the-badge&color=facc15)](https://github.com/srsergi0/MDPOWER/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=for-the-badge)](LICENSE)
 
 <br />
@@ -19,7 +19,7 @@
 <br />
 <br />
 
-![Markdown Reader Screenshot](docs/screenshot.png)
+![MDPOWER Screenshot](docs/screenshot.png)
 
 ---
 
@@ -27,9 +27,9 @@
 
 ## 🚀 The Performance Showdown
 
-Why run a full instance of Chrome just to read a text file? Markdown Reader uses the operating system's native WebView, making it incredibly lightweight compared to standard editors.
+Why run a full instance of Chrome just to read a text file? MDPOWER uses the operating system's native WebView, making it incredibly lightweight compared to standard editors.
 
-| Metric | ⚡️ Markdown Reader | 📓 Obsidian | 🟦 VS Code |
+| Metric | ⚡️ MDPOWER | 📓 Obsidian | 🟦 VS Code |
 | :--- | :--- | :--- | :--- |
 | **Startup Time** | **< 50ms** | ~ 3.2s | ~ 2.1s |
 | **RAM Idle** | **~ 24 MB** | ~ 310 MB | ~ 240 MB |
@@ -54,7 +54,7 @@ Copy-paste to build from source in seconds:
 
 ```bash
 # Get the repository
-git clone https://github.com/srsergi0/markdown-reader.git && cd markdown-reader
+git clone https://github.com/srsergi0/MDPOWER.git && cd MDPOWER
 
 # Install dependencies and launch dev mode
 bun install && bun run dev

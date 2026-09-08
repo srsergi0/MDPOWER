@@ -1,4 +1,4 @@
-# Contributing to Markdown Reader
+# Contributing to MDPOWER
 
 Thanks for your interest in contributing! Here's how to get started.
 
@@ -9,8 +9,8 @@ Thanks for your interest in contributing! Here's how to get started.
 curl -fsSL https://bun.sh/install | bash
 
 # Clone the repo
-git clone https://github.com/yourusername/markdown-reader.git
-cd markdown-reader
+git clone https://github.com/yourusername/MDPOWER.git
+cd MDPOWER
 
 # Install dependencies
 bun install

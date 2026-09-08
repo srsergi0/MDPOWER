@@ -50,7 +50,7 @@ export default function UpdateToast({ latestVersion, onDownload, onClose }: Prop
             </button>
           </div>
           <p className="mt-1 text-xs text-[var(--text-muted)] leading-normal">
-            La versión <span className="font-semibold text-[var(--text-main)]">v{latestVersion}</span> de Markdown Reader ya está disponible. Descárgala para disfrutar de las últimas mejoras.
+            La versión <span className="font-semibold text-[var(--text-main)]">v{latestVersion}</span> de MDPOWER ya está disponible. Descárgala para disfrutar de las últimas mejoras.
           </p>
           
           <div className="mt-4 flex gap-2 justify-end items-center">

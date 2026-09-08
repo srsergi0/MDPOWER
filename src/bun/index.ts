@@ -391,7 +391,7 @@ const initialFilePath = getInitialFilePath();
 const url = await getMainViewUrl();
 
 const win = new BrowserWindow({
-  title: "Markdown Reader",
+  title: "MDPOWER",
   url,
   titleBarStyle: "default",
   frame: {
@@ -423,4 +423,4 @@ win.webview.on("dom-ready", async () => {
   }
 });
 
-console.log("Markdown Reader started!");
+console.log("MDPOWER started!");

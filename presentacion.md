@@ -1,6 +1,6 @@
-# ⚡️ Markdown Reader Showcase
+# ⚡️ MDPOWER Showcase
 
-Welcome to the live demo presentation of **Markdown Reader**! This document showcases the rich rendering features, high-performance styling, and advanced components supported by this ultra-fast viewer.
+Welcome to the live demo presentation of **MDPOWER**! This document showcases the rich rendering features, high-performance styling, and advanced components supported by this ultra-fast viewer.
 
 ---
 
@@ -19,7 +19,7 @@ Here is a quick overview of standard text styling:
 
 ## 📊 Features & Performance
 
-| Feature | ⚡️ Markdown Reader | 📓 Others |
+| Feature | ⚡️ MDPOWER | 📓 Others |
 | :--- | :---: | :---: |
 | **Startup Speed** | **< 50ms** | ~ 3.0s |
 | **RAM Footprint** | **~ 24 MB** | ~ 300 MB |
@@ -36,7 +36,7 @@ Below is a modern TypeScript snippet showing how lightweight our event bridge sy
 import { App } from 'electrobun';
 
 const app = new App({
-  name: "Markdown Reader",
+  name: "MDPOWER",
   onReady: () => {
     console.log("🚀 Application is ready to render views!");
   }

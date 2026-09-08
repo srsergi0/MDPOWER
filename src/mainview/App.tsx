@@ -257,7 +257,7 @@ function App() {
 
     const checkForUpdates = async () => {
       try {
-        const response = await fetch("https://api.github.com/repos/srsergi0/markdown-reader/releases/latest");
+        const response = await fetch("https://api.github.com/repos/srsergi0/MDPOWER/releases/latest");
         if (!response.ok) return;
         const data = await response.json();
         const latestVersion = data.tag_name;
@@ -271,7 +271,7 @@ function App() {
         if (isNewerVersion(cleanCurrent, cleanLatest)) {
           setUpdateInfo({
             version: cleanLatest,
-            url: data.html_url || "https://github.com/srsergi0/markdown-reader/releases/latest"
+            url: data.html_url || "https://github.com/srsergi0/MDPOWER/releases/latest"
           });
         }
       } catch (e) {

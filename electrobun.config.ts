@@ -2,8 +2,8 @@ import type { ElectrobunConfig } from "electrobun";
 
 export default {
 	app: {
-		name: "Markdown Reader",
-		identifier: "markdownreader.electrobun.dev",
+		name: "MDPOWER",
+		identifier: "mdpower.electrobun.dev",
 		version: "1.0.2",
 	},
 	build: {

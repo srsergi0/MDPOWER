@@ -15,8 +15,8 @@ $ico = Join-Path $outDir "temp-icon.ico"
 if (-not (Test-Path -LiteralPath $rcedit)) { throw "rcedit not found: $rcedit (run bun install)" }
 if (-not (Test-Path -LiteralPath $ico)) { throw "icon not found: $ico (electrobun build must run first)" }
 
-$setupExe = Join-Path $outDir "Markdown Reader-Setup.exe"
-$launcher = Join-Path $outDir "MarkdownReader\bin\launcher"
+$setupExe = Join-Path $outDir "MDPOWER-Setup.exe"
+$launcher = Join-Path $outDir "MDPOWER\bin\launcher"
 
 & $rcedit $setupExe --set-icon $ico
 if ($LASTEXITCODE -ne 0) { throw "rcedit failed on Setup.exe" }
@@ -29,23 +29,23 @@ Move-Item -LiteralPath "$launcher.exe" -Destination $launcher -Force
 # Repack archive (same top-level layout electrobun produces)
 Push-Location $outDir
 try {
-  & tar -c --zstd -f "Markdown Reader-Setup.tar.zst" MarkdownReader
+  & tar -c --zstd -f "MDPOWER-Setup.tar.zst" MarkdownReader
   if ($LASTEXITCODE -ne 0) { throw "tar repack failed" }
 } finally { Pop-Location }
 
 # Rebuild installer zip (same entry layout)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zipPath = Join-Path $outDir "MarkdownReader-Setup.zip"
+$zipPath = Join-Path $outDir "MDPOWER-Setup.zip"
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 $zip = [System.IO.Compression.ZipFile]::Open($zipPath, "Create")
 try {
-  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $outDir "Markdown Reader-Setup.metadata.json"), ".installer/Markdown Reader-Setup.metadata.json") | Out-Null
-  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $outDir "Markdown Reader-Setup.tar.zst"), ".installer/Markdown Reader-Setup.tar.zst") | Out-Null
-  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $setupExe, "Markdown Reader-Setup.exe") | Out-Null
+  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $outDir "MDPOWER-Setup.metadata.json"), ".installer/MDPOWER-Setup.metadata.json") | Out-Null
+  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, (Join-Path $outDir "MDPOWER-Setup.tar.zst"), ".installer/MDPOWER-Setup.tar.zst") | Out-Null
+  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $setupExe, "MDPOWER-Setup.exe") | Out-Null
 } finally { $zip.Dispose() }
 
 # Refresh artifacts copies
-Copy-Item -LiteralPath $zipPath -Destination (Join-Path $root "artifacts\$Channel-win-x64-MarkdownReader-Setup.zip") -Force
-Copy-Item -LiteralPath (Join-Path $outDir "Markdown Reader-Setup.tar.zst") -Destination (Join-Path $root "artifacts\$Channel-win-x64-MarkdownReader.tar.zst") -Force
+Copy-Item -LiteralPath $zipPath -Destination (Join-Path $root "artifacts\$Channel-win-x64-MDPOWER-Setup.zip") -Force
+Copy-Item -LiteralPath (Join-Path $outDir "MDPOWER-Setup.tar.zst") -Destination (Join-Path $root "artifacts\$Channel-win-x64-MDPOWER.tar.zst") -Force
 
 Write-Output "Icons embedded and artifacts repacked for channel: $Channel"
