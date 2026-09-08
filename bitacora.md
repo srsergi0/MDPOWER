@@ -4,6 +4,16 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 16:45] — Fallback de enlaces por nombre de archivo (fix "No se pudo abrir")
+- **Tipo de cambio**: [Corrección]
+- **Archivos modificados**:
+  - `src/mainview/App.tsx`
+- **Descripción**:
+  - `handleOpenLink`: tras `resolvePath`+`getFileContent`, si falla busca por `basename` insensible a mayúsculas primero en pestañas abiertas y luego en `folderTrees` (actual y resto), abriendo desde `entry.content` en carpetas virtuales o vía `getFileContent(entry.path)`. Comparación de `resolvedPath` también insensible a mayúsculas. Log en consola con `basePath` y `resolvedPath` para diagnosticar.
+  - Motivo: el clic a `./video-09-...md` resolvía bien pero el archivo no existía en esa ruta (modo single-file sin carpeta, o typo/subcarpeta), y el toast no ofrecía alternativa.
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` con 0 errores.
+
 ### [2026-09-08 16:35] — Motor de temas TOML comunitario estilo Omarchy + VSCode
 - **Tipo de cambio**: [Nueva Característica | Refactor]
 - **Archivos modificados**:

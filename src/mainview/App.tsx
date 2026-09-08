@@ -621,34 +621,91 @@ function App() {
         try {
           decoded = decodeURIComponent(filePart);
         } catch { }
-        const resolvedPath = await view.proxy.request.resolvePath({
-          basePath: activeFile.path,
-          relativePath: decoded,
-        });
-        const existing = tabs.find((t) => t.path === resolvedPath);
-        if (existing) {
-          setActiveTabId(existing.id);
+        const openResolved = async (resolvedPath: string): Promise<boolean> => {
+          const existing = tabs.find((t) => t.path === resolvedPath || t.path.toLowerCase() === resolvedPath.toLowerCase());
+          if (existing) {
+            setActiveTabId(existing.id);
+            if (anchor) scrollToAnchor(anchor);
+            return true;
+          }
+          const result = await view.proxy.request.getFileContent({ path: resolvedPath });
+          if (!result) return false;
+          const id = `tab-${++tabCounter}`;
+          setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename, folderPath: activeFile?.folderPath || null }]);
+          setActiveTabId(id);
+          setTabContents((prev) => ({ ...prev, [id]: result.content }));
+          setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
+          view.proxy.request.startWatching({ path: resolvedPath });
           if (anchor) scrollToAnchor(anchor);
-          return;
-        }
-        const result = await view.proxy.request.getFileContent({ path: resolvedPath });
-        if (!result) {
+          return true;
+        };
+        const findByName = (list: FileEntry[], lower: string): FileEntry | null => {
+          for (const item of list) {
+            if (!item.isDirectory) {
+              if (item.name.toLowerCase() === lower) return item;
+            } else if (item.children) {
+              const found = findByName(item.children, lower);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        const openFromEntry = async (entry: FileEntry): Promise<boolean> => {
+          const existing = tabs.find((t) => t.path === entry.path);
+          if (existing) {
+            setActiveTabId(existing.id);
+            if (anchor) scrollToAnchor(anchor);
+            return true;
+          }
+          if (entry.content) {
+            const id = `tab-${++tabCounter}`;
+            setTabs((prev) => [...prev, { id, path: entry.path, filename: entry.name, folderPath: activeFile?.folderPath || null }]);
+            setActiveTabId(id);
+            setTabContents((prev) => ({ ...prev, [id]: entry.content! }));
+            view.proxy.request.compileMarkdown({ markdown: entry.content! }).then((res: { html: string }) => {
+              if (res?.html) setTabHtmls((prev) => ({ ...prev, [id]: res.html }));
+              if (anchor) scrollToAnchor(anchor);
+            });
+            return true;
+          }
+          return openResolved(entry.path);
+        };
+        let resolvedPath = "";
+        try {
+          resolvedPath = await view.proxy.request.resolvePath({
+            basePath: activeFile.path,
+            relativePath: decoded,
+          });
+        } catch { }
+        if (resolvedPath && await openResolved(resolvedPath)) return;
+        const targetName = decoded.split(/[\\/]/).pop()?.toLowerCase() || "";
+        if (!targetName) {
           setToastMsg(`No se pudo abrir: ${decoded}`);
           return;
         }
-        const id = `tab-${++tabCounter}`;
-        setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename, folderPath: activeFile?.folderPath || null }]);
-        setActiveTabId(id);
-        setTabContents((prev) => ({ ...prev, [id]: result.content }));
-        setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
-        view.proxy.request.startWatching({ path: resolvedPath });
-        if (anchor) scrollToAnchor(anchor);
+        const tabByName = tabs.find((t) => t.filename.toLowerCase() === targetName || t.path.split(/[\\/]/).pop()?.toLowerCase() === targetName);
+        if (tabByName) {
+          setActiveTabId(tabByName.id);
+          if (anchor) scrollToAnchor(anchor);
+          return;
+        }
+        const searchOrder: FileEntry[][] = [];
+        if (currentFolderPath && folderTrees[currentFolderPath]) searchOrder.push(folderTrees[currentFolderPath]);
+        for (const key of Object.keys(folderTrees)) {
+          if (key !== currentFolderPath) searchOrder.push(folderTrees[key]);
+        }
+        for (const tree of searchOrder) {
+          const found = findByName(tree, targetName);
+          if (found && await openFromEntry(found)) return;
+        }
+        console.error("Link not found:", { href, decoded, basePath: activeFile.path, resolvedPath });
+        setToastMsg(`No se encontró: ${targetName}`);
       } catch (err) {
         console.error("Failed to open link:", err);
         setToastMsg("No se pudo abrir el enlace");
       }
     },
-    [activeFile, tabs, scrollToAnchor],
+    [activeFile, tabs, folderTrees, currentFolderPath, scrollToAnchor],
   );
 
   const handleReorderTabs = useCallback((fromIndex: number, toIndex: number) => {
