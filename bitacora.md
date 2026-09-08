@@ -4,6 +4,20 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 16:20] — Soporte robusto de enlaces md en nueva pestaña + externos y anclas
+- **Tipo de cambio**: [Nueva Característica | Modificación]
+- **Archivos modificados**:
+  - `src/mainview/components/MarkdownViewer.tsx`
+  - `src/mainview/App.tsx`
+  - `src/bun/index.ts`
+  - `FEATURES.md`
+- **Descripción**:
+  - `MarkdownViewer`: delegación de clics ampliada — detecta `.md`/`.markdown` tras quitar `#ancla` y `?query` (antes fallaba con `nota.md#sección`), bloquea `javascript:/data:`, scroll suave local para `#ancla`, y envía `http(s):/mailto:/tel:` a `onOpenExternal`.
+  - `App.tsx`: `handleOpenLink` separa `filePart` y `anchor`, decodifica URI, resuelve vía RPC, abre en nueva pestaña (o activa existente) y hace scroll al ancla; toast si el archivo no existe. Nuevo `handleOpenExternal` vía `openExternalUrl`.
+  - `src/bun/index.ts`: `resolvePath` ahora quita `#`/`?` y hace `decodeURIComponent` antes de `path.resolve`.
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` con 0 errores.
+
 ### [2026-09-08 15:10] — Migración de TabBar a solo Tailwind (sin TabBar.css)
 - **Tipo de cambio**: [Refactor]
 - **Archivos modificados**:

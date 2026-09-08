@@ -34,9 +34,10 @@ type Props = {
   content: string;
   html?: string;
   onOpenLink?: (href: string) => void;
+  onOpenExternal?: (url: string) => void;
 };
 
-export default function MarkdownViewer({ content, html, onOpenLink }: Props) {
+export default function MarkdownViewer({ content, html, onOpenLink, onOpenExternal }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentDivRef = useRef<HTMLDivElement>(null);
 
@@ -96,21 +97,41 @@ export default function MarkdownViewer({ content, html, onOpenLink }: Props) {
       return;
     }
 
-    // Handle markdown links
+    // Handle all markdown links
     const link = target.closest("a");
     if (link) {
-      const href = link.getAttribute("href");
-      if (
-        href &&
-        (href.toLowerCase().endsWith(".md") || href.toLowerCase().endsWith(".markdown")) &&
-        !/^https?:\/\//i.test(href) &&
-        onOpenLink
-      ) {
+      const rawHref = link.getAttribute("href");
+      if (!rawHref) return;
+      const href = rawHref.trim();
+      if (!href) return;
+      if (/^(javascript|data|vbscript):/i.test(href)) {
         e.preventDefault();
-        onOpenLink(href);
+        return;
       }
+      if (href.startsWith("#")) {
+        e.preventDefault();
+        const id = decodeURIComponent(href.slice(1));
+        if (!id) return;
+        const root = contentDivRef.current;
+        const el = root?.querySelector(`#${CSS.escape(id)}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) {
+        e.preventDefault();
+        if (onOpenExternal) onOpenExternal(href);
+        return;
+      }
+      const clean = href.split("#")[0].split("?")[0].trim();
+      const lower = clean.toLowerCase();
+      if (lower.endsWith(".md") || lower.endsWith(".markdown")) {
+        e.preventDefault();
+        if (onOpenLink) onOpenLink(href);
+        return;
+      }
+      e.preventDefault();
     }
-  }, [onOpenLink]);
+  }, [onOpenLink, onOpenExternal]);
 
 
 

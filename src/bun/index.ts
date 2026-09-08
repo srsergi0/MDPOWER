@@ -167,7 +167,12 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
       },
       resolvePath: async ({ basePath, relativePath }) => {
         const { dirname, resolve } = await import("path");
-        return resolve(dirname(basePath), relativePath);
+        const withoutHash = relativePath.split("#")[0].split("?")[0].trim();
+        let decoded = withoutHash;
+        try {
+          decoded = decodeURIComponent(withoutHash);
+        } catch { }
+        return resolve(dirname(basePath), decoded);
       },
       startWatching: async ({ path: filePath }) => {
         if (currentWatchedPath === filePath && currentWatcher) return {};

@@ -12,7 +12,7 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
   - Resaltado de sintaxis ligero y modular mediante `PrismJS` con soporte para TypeScript, JavaScript, Python, Bash, Rust, JSON, CSS, SQL, YAML y Markdown.
   - Botón interactivo de copiado en cabecera de bloques de código ("Copy" / "Copied!").
   - Diagramas Mermaid integrados con soporte nativo de bloques `.mermaid-block`.
-  - Resolución y apertura de enlaces locales hacia otros archivos `.md` / `.markdown` dentro de pestañas de la app.
+  - Resolución y apertura de enlaces locales hacia otros archivos `.md` / `.markdown` en nueva pestaña (soporta `./`, `../`, `#anclas`, `?query`, `%20`, mayúsculas), scroll suave a `#anclas` locales, y apertura de enlaces externos (`http/https`, `mailto:`, etc.) en navegador vía `openExternalUrl`.
   - Resaltado visual pulsante (`highlight-pulse`) al navegar directamente a una línea objetivo desde la búsqueda.
 - **Archivos involucrados**:
   - `src/bun/index.ts` (`compileMarkdownWithBun`, `Bun.markdown.render`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)

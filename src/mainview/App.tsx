@@ -479,34 +479,75 @@ function App() {
     [tabs],
   );
 
+  const scrollToAnchor = useCallback((anchor: string) => {
+    const id = decodeURIComponent(anchor);
+    if (!id) return;
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        try {
+          const el = document.querySelector(`#markdown-content-scroll #${CSS.escape(id)}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch { }
+      }, 150);
+    });
+  }, []);
+
+  const handleOpenExternal = useCallback((url: string) => {
+    electroviewRef.current?.proxy.request.openExternalUrl({ url }).catch((err: any) => {
+      console.error("Failed to open external url:", err);
+    });
+  }, []);
+
   const handleOpenLink = useCallback(
     async (href: string) => {
+      if (!href) return;
+      if (href.startsWith("#")) {
+        scrollToAnchor(href.slice(1));
+        return;
+      }
       if (!activeFile?.path) return;
       const view = electroviewRef.current;
       if (!view) return;
       try {
+        const hashIndex = href.indexOf("#");
+        const anchor = hashIndex >= 0 ? href.slice(hashIndex + 1) : "";
+        const filePart = (hashIndex >= 0 ? href.slice(0, hashIndex) : href).split("?")[0].trim();
+        if (!filePart) {
+          if (anchor) scrollToAnchor(anchor);
+          return;
+        }
+        let decoded = filePart;
+        try {
+          decoded = decodeURIComponent(filePart);
+        } catch { }
         const resolvedPath = await view.proxy.request.resolvePath({
           basePath: activeFile.path,
-          relativePath: href,
+          relativePath: decoded,
         });
         const existing = tabs.find((t) => t.path === resolvedPath);
         if (existing) {
           setActiveTabId(existing.id);
+          if (anchor) scrollToAnchor(anchor);
           return;
         }
         const result = await view.proxy.request.getFileContent({ path: resolvedPath });
-        if (!result) return;
+        if (!result) {
+          setToastMsg(`No se pudo abrir: ${decoded}`);
+          return;
+        }
         const id = `tab-${++tabCounter}`;
         setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename, folderPath: activeFile?.folderPath || null }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: result.content }));
         setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
         view.proxy.request.startWatching({ path: resolvedPath });
+        if (anchor) scrollToAnchor(anchor);
       } catch (err) {
         console.error("Failed to open link:", err);
+        setToastMsg("No se pudo abrir el enlace");
       }
     },
-    [activeFile, tabs],
+    [activeFile, tabs, scrollToAnchor],
   );
 
   const handleReorderTabs = useCallback((fromIndex: number, toIndex: number) => {
@@ -723,6 +764,7 @@ function App() {
                 content={activeContent}
                 html={activeHtml}
                 onOpenLink={handleOpenLink}
+                onOpenExternal={handleOpenExternal}
               />
             </main>
           </div>
