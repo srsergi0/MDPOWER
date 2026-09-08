@@ -9,7 +9,7 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "../App";
 import MermaidRenderer from "./MermaidRenderer";
-import { FileText, ChevronRight, Check } from "lucide-react";
+import { FileText, ChevronRight } from "lucide-react";
 
 type Props = {
   content: string;
@@ -49,7 +49,7 @@ const extractHeadings = (markdown: string) => {
   const lines = markdown.split("\n");
   const list: HeadingItem[] = [];
   let inCodeBlock = false;
-  
+
   const levelParents: Record<number, string | null> = {
     1: null, 2: null, 3: null, 4: null, 5: null, 6: null
   };
@@ -69,100 +69,19 @@ const extractHeadings = (markdown: string) => {
         .replace(/[*_`[\]]/g, "")
         .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
       const id = getHeadingId(cleanText);
-      
+
       const parentId = level > 1 ? levelParents[level - 1] : null;
       levelParents[level] = id;
       for (let l = level + 1; l <= 6; l++) {
         levelParents[l] = null;
       }
-      
+
       list.push({ text: cleanText, level, id, parentId });
     }
   }
   return list;
 };
 
-function BreadcrumbSegment({
-  item,
-  headings,
-  onSelect,
-}: {
-  item: HeadingItem;
-  headings: HeadingItem[];
-  onSelect: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setOpen(false);
-    }, 250);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  const siblings = useMemo(() => {
-    return headings.filter(
-      (h) => h.level === item.level && h.parentId === item.parentId
-    );
-  }, [headings, item]);
-
-  return (
-    <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className="relative flex items-center h-full"
-    >
-      <button
-        onClick={() => onSelect(item.id)}
-        className={`px-2 py-0.5 rounded transition-all text-[var(--text-muted)] hover:text-[var(--accent-blue)] hover:bg-[var(--accent-hover)] font-medium truncate max-w-[140px] text-xs ${
-          open ? "text-[var(--accent-blue)] bg-[var(--accent-hover)]" : ""
-        }`}
-      >
-        {item.text}
-      </button>
-
-      {/* Segment Sibling Dropdown Menu */}
-      {open && siblings.length > 1 && (
-        <div 
-          className="absolute left-0 mt-1 min-w-[200px] max-w-[280px] bg-[var(--bg-sidebar)]/90 backdrop-blur-xl border border-[var(--border-main)] rounded-xl shadow-[0_12px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1 z-50 animate-scale-in max-h-60 overflow-y-auto custom-scrollbar select-none flex flex-col gap-0.5"
-          style={{ top: "100%" }}
-        >
-          {siblings.map((sibling) => {
-            const isSelf = sibling.id === item.id;
-            return (
-              <button
-                key={sibling.id}
-                onClick={() => {
-                  onSelect(sibling.id);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-3 py-1.5 text-xs truncate rounded-lg transition-all duration-150 flex items-center justify-between hover:translate-x-0.5 ${
-                  isSelf 
-                    ? "text-[var(--accent-blue)] bg-[var(--accent-hover)] font-semibold" 
-                    : "text-[var(--text-main)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
-                }`}
-              >
-                <span className="truncate">{sibling.text}</span>
-                {isSelf && <Check className="w-3.5 h-3.5 text-[var(--accent-blue)] shrink-0" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function CodeBlock({
   className,
@@ -206,7 +125,7 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
 
   const [activeId, setActiveId] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Ref to lock scroll spy during smooth scroll navigation
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -248,7 +167,7 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
         closestEl.classList.remove("highlight-pulse");
         void closestEl.offsetWidth; // Trigger reflow to restart animation
         closestEl.classList.add("highlight-pulse");
-        
+
         const targetEl = closestEl;
         setTimeout(() => {
           targetEl.classList.remove("highlight-pulse");
@@ -275,7 +194,7 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
 
     let currentActive = headers[0].id;
     const containerRect = container.getBoundingClientRect();
-    
+
     for (let i = 0; i < headers.length; i++) {
       const header = headers[i];
       const rect = header.getBoundingClientRect();
@@ -285,7 +204,7 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
         break;
       }
     }
-    
+
     setActiveId(currentActive);
   }, []);
 
@@ -295,7 +214,7 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
 
     container.addEventListener("scroll", handleScroll);
     handleScroll();
-    
+
     const timer = setTimeout(() => {
       handleScroll();
     }, 150);
@@ -310,10 +229,10 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
   // Compute active hierarchy path (e.g. H1 > H2 > H3)
   const activePath = useMemo(() => {
     if (!activeId || headings.length === 0) return [];
-    
+
     const path: HeadingItem[] = [];
     let current = headings.find(h => h.id === activeId);
-    
+
     while (current) {
       path.push(current);
       const parentId: string | null = current.parentId;
@@ -323,28 +242,10 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
         break;
       }
     }
-    
+
     return path.reverse();
   }, [activeId, headings]);
 
-  const handleSegmentSelect = useCallback((id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    // Lock the scroll spy to prevent intermediate segment jumping during smooth scrolling
-    isScrollingRef.current = true;
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-
-    // Instantly set the active ID so breadcrumbs update immediately
-    setActiveId(id);
-
-    el.scrollIntoView({ behavior: "smooth" });
-
-    // Unlock scroll spy after smooth scroll completes (typically ~800ms)
-    scrollTimeoutRef.current = setTimeout(() => {
-      isScrollingRef.current = false;
-    }, 800);
-  }, []);
 
   const components: Components = {
     h1: ({ node, children, ...props }) => {
@@ -607,28 +508,12 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
 
   return (
     <div className="h-full w-full overflow-hidden relative bg-[var(--bg-editor)] text-[var(--text-main)]">
-      {/* Floating Glass Breadcrumbs Bar */}
-      {activePath.length > 0 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-[var(--bg-sidebar)]/85 backdrop-blur-md border border-[var(--border-main)] rounded-full px-4 py-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgb(0,0,0,0.45)] select-none">
-          {activePath.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-1.5">
-              {index > 0 && (
-                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-              )}
-              <BreadcrumbSegment
-                item={item}
-                headings={headings}
-                onSelect={handleSegmentSelect}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+
 
       {/* Main content scroll area */}
-      <div 
+      <div
         ref={scrollContainerRef}
-        className="h-full overflow-y-auto px-8 py-8 relative custom-scrollbar scroll-smooth" 
+        className="h-full overflow-y-auto px-8 py-8 relative custom-scrollbar scroll-smooth"
         id="markdown-content-scroll"
       >
         <div className="max-w-3xl mx-auto pt-14">
