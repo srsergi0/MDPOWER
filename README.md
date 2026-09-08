@@ -14,7 +14,7 @@
 
 <br />
 
-**[Download Now](https://srsergi0.github.io/markdown-reader/)** • **[Read Web Documentation](https://srsergi0.github.io/markdown-reader/)**
+**[Download Now](https://srsergi0.github.io/MDPOWER/)** • **[Read Web Documentation](https://srsergi0.github.io/MDPOWER/)**
 
 <br />
 <br />
