@@ -25,102 +25,6 @@ let currentFolderWatcher: FSWatcher | null = null;
 let currentWatchedFolder: string | null = null;
 let folderRescanTimeout: ReturnType<typeof setTimeout> | null = null;
 
-class SearchIndexer {
-  private cache = new Map<string, { filename: string; lines: { raw: string; lower: string }[] }>();
-  private folderPath: string | null = null;
-
-  async indexFile(filePath: string, filename: string) {
-    try {
-      const file = Bun.file(filePath);
-      const exists = await file.exists();
-      if (exists) {
-        const content = await file.text();
-        const rawLines = content.split(/\r?\n/);
-        const lines = rawLines.map(line => ({
-          raw: line,
-          lower: line.toLowerCase()
-        }));
-        this.cache.set(filePath, { filename, lines });
-      } else {
-        this.cache.delete(filePath);
-      }
-    } catch (err) {
-      console.error(`Error indexing file ${filePath}:`, err);
-    }
-  }
-
-  removeFile(filePath: string) {
-    this.cache.delete(filePath);
-  }
-
-  clear() {
-    this.cache.clear();
-    this.folderPath = null;
-  }
-
-  async indexFolder(dir: string) {
-    if (this.folderPath === dir && this.cache.size > 0) {
-      return; // Already indexed
-    }
-    this.clear();
-    this.folderPath = dir;
-
-    const filesToProcess: { path: string; name: string }[] = [];
-
-    const walk = async (currentDir: string) => {
-      try {
-        const items = await readdir(currentDir, { withFileTypes: true });
-        for (const item of items) {
-          const fullPath = join(currentDir, item.name);
-          if (item.isDirectory()) {
-            if (item.name !== "node_modules" && !item.name.startsWith(".")) {
-              await walk(fullPath);
-            }
-          } else if (item.name.endsWith(".md") || item.name.endsWith(".markdown")) {
-            filesToProcess.push({ path: fullPath, name: item.name });
-          }
-        }
-      } catch (err) {
-        console.error(`Walk error in indexFolder:`, err);
-      }
-    };
-
-    await walk(dir);
-
-    // Concurrently process files in batches of 20
-    const concurrency = 20;
-    for (let i = 0; i < filesToProcess.length; i += concurrency) {
-      const batch = filesToProcess.slice(i, i + concurrency);
-      await Promise.all(batch.map(file => this.indexFile(file.path, file.name)));
-    }
-
-    console.log(`Finished indexing folder: ${dir}. Total indexed files: ${this.cache.size}`);
-  }
-
-  search(query: string): { path: string; filename: string; line: number; content: string }[] {
-    if (!query) return [];
-    const lowerQ = query.toLowerCase();
-    const results: { path: string; filename: string; line: number; content: string }[] = [];
-
-    for (const [filePath, fileData] of this.cache.entries()) {
-      const lines = fileData.lines;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].lower.includes(lowerQ)) {
-          results.push({
-            path: filePath,
-            filename: fileData.filename,
-            line: i + 1,
-            content: lines[i].raw.trim()
-          });
-        }
-      }
-    }
-    return results;
-  }
-}
-
-const indexer = new SearchIndexer();
-
 
 async function scanDir(dir: string): Promise<FileEntry[]> {
   const entries: FileEntry[] = [];
@@ -279,7 +183,6 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
             if (!exists) return;
             const content = await file.text();
             const html = compileMarkdownWithBun(content);
-            indexer.indexFile(filePath, basename(filePath));
             win?.webview.rpc?.send.fileChanged({ path: filePath, content, html });
           } catch {
             // file might not be readable at the moment
@@ -306,11 +209,9 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
         return {};
       },
       readFolder: async ({ path: folderPath }) => {
-        indexer.indexFolder(folderPath).catch(err => console.error("Index error:", err));
         return scanDir(folderPath);
       },
       startWatchingFolder: async ({ path: folderPath }) => {
-        indexer.indexFolder(folderPath).catch(err => console.error("Index error:", err));
         if (currentFolderWatcher && currentWatchedFolder === folderPath) return {};
         if (currentFolderWatcher) {
           currentFolderWatcher.close();
@@ -334,12 +235,8 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
             { recursive: true },
             (eventType: string, filename: string | null) => {
               if (!filename) return;
-              const fullPath = join(folderPath, filename);
               const name = filename.toLowerCase();
-              if (name.endsWith(".md") || name.endsWith(".markdown")) {
-                indexer.indexFile(fullPath, basename(filename));
-                rescan();
-              } else if (eventType === "rename") {
+              if (name.endsWith(".md") || name.endsWith(".markdown") || eventType === "rename") {
                 rescan();
               }
             },
@@ -360,10 +257,6 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
         }
         currentWatchedFolder = null;
         return {};
-      },
-      searchInFolder: async ({ path: folderPath, query }) => {
-        console.log(`Searching folder ${folderPath} for: ${query}`);
-        return indexer.search(query);
       },
 
       openExternalUrl: async ({ url }) => {

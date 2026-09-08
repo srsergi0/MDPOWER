@@ -5,6 +5,7 @@ export type Tab = {
   id: string;
   path: string;
   filename: string;
+  folderPath?: string | null;
 };
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   onSelectTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onReorderTabs?: (fromIndex: number, toIndex: number) => void;
+  hasFolder: boolean;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
 };
@@ -23,6 +25,7 @@ export default function TabBar({
   onSelectTab,
   onCloseTab,
   onReorderTabs,
+  hasFolder,
   sidebarOpen,
   onToggleSidebar,
 }: Props) {
@@ -83,27 +86,33 @@ export default function TabBar({
     setDragIndex(null);
   }, []);
 
+  if (tabs.length === 0 && !hasFolder) {
+    return null;
+  }
+
   return (
     <div className="flex items-stretch bg-[var(--bg-sidebar)] border-b border-[var(--border-main)] h-[35px] select-none">
-      {/* Botón de sidebar fijo a la izquierda */}
-      <div className="flex-shrink-0 flex items-center px-1 border-r border-[var(--border-main)]">
-        <button
-          onClick={onToggleSidebar}
-          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          className={`p-1.5 rounded-md transition-colors active:scale-95 flex items-center justify-center ${
-            sidebarOpen
-              ? "bg-[var(--accent-hover)] text-[var(--text-main)]"
-              : "text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
-          }`}
-        >
-          {sidebarOpen ? (
-            <PanelLeftClose className="w-4 h-4" />
-          ) : (
-            <PanelLeftOpen className="w-4 h-4" />
-          )}
-        </button>
-      </div>
+      {/* Botón de sidebar fijo a la izquierda (solo si hay carpeta abierta) */}
+      {hasFolder && (
+        <div className="flex-shrink-0 flex items-center px-1 border-r border-[var(--border-main)]">
+          <button
+            onClick={onToggleSidebar}
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            className={`p-1.5 rounded-md transition-colors active:scale-95 flex items-center justify-center ${
+              sidebarOpen
+                ? "bg-[var(--accent-hover)] text-[var(--text-main)]"
+                : "text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
+            }`}
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose className="w-4 h-4" />
+            ) : (
+              <PanelLeftOpen className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Lista de pestañas con scroll horizontal */}
       <div

@@ -34,10 +34,9 @@ type Props = {
   content: string;
   html?: string;
   onOpenLink?: (href: string) => void;
-  scrollToLine?: { line: number; timestamp: number } | null;
 };
 
-export default function MarkdownViewer({ content, html, onOpenLink, scrollToLine }: Props) {
+export default function MarkdownViewer({ content, html, onOpenLink }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentDivRef = useRef<HTMLDivElement>(null);
 
@@ -113,45 +112,7 @@ export default function MarkdownViewer({ content, html, onOpenLink, scrollToLine
     }
   }, [onOpenLink]);
 
-  // Scroll to targeted line or heading
-  useEffect(() => {
-    if (scrollToLine && scrollContainerRef.current) {
-      const line = scrollToLine.line;
-      const container = scrollContainerRef.current;
-      const elements = Array.from(container.querySelectorAll("[data-line], h1, h2, h3, h4, h5, h6"));
-      if (elements.length === 0) return;
 
-      let closestEl: HTMLElement | null = null;
-      let closestDiff = Infinity;
-
-      for (const el of elements) {
-        const elLine = parseInt(el.getAttribute("data-line") || "0", 10);
-        if (elLine > 0) {
-          const diff = line - elLine;
-          if (diff >= 0 && diff < closestDiff) {
-            closestDiff = diff;
-            closestEl = el as HTMLElement;
-          }
-        }
-      }
-
-      if (!closestEl && elements.length > 0) {
-        closestEl = elements[0] as HTMLElement;
-      }
-
-      if (closestEl) {
-        closestEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        closestEl.classList.remove("highlight-pulse");
-        void closestEl.offsetWidth;
-        closestEl.classList.add("highlight-pulse");
-
-        const targetEl = closestEl;
-        setTimeout(() => {
-          targetEl.classList.remove("highlight-pulse");
-        }, 2500);
-      }
-    }
-  }, [scrollToLine]);
 
 
 

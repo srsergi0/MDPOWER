@@ -4,6 +4,51 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 13:58] — Eliminación de Raíz del Buscador Global (`SearchPanel` y `SearchIndexer`)
+- **Tipo de cambio**: [Eliminación de raíz]
+- **Archivos modificados**:
+  - `src/mainview/components/SearchPanel.tsx` (eliminado de raíz)
+  - `src/mainview/components/TopBar.tsx` (eliminado botón de búsqueda con lupa, props `hasFolder`, `searchOpen`, `onToggleSearch` e import de Lucide)
+  - `src/mainview/App.tsx` (eliminados imports de `SearchPanel`, estados `searchOpen` y `scrollTarget`, atajo `Ctrl+Shift+F`, llamadas a `searchInFolder` y prop `scrollToLine` de `MarkdownViewer`)
+  - `src/mainview/components/MarkdownViewer.tsx` (eliminada prop `scrollToLine` y efecto de scroll resaltado que dependía del buscador)
+  - `src/bun/index.ts` (eliminada clase `SearchIndexer`, su caché en memoria y los escaneos concurrentes en `indexFolder`/`indexFile` al abrir carpetas o modificar archivos; eliminado endpoint RPC `searchInFolder`)
+  - `src/shared/types.ts` (eliminado endpoint RPC `searchInFolder`)
+  - `FEATURES.md` (módulo 6 marcado como quitado de raíz)
+- **Descripción**:
+  - A solicitud del usuario, se extirpó por completo toda la funcionalidad del buscador en el espacio de trabajo.
+  - Al remover `SearchIndexer` de Bun, la apertura de carpetas (incluso con cientos de ficheros) ahora es 100% instantánea sin sobrecarga de lectura en segundo plano ni consumo innecesario de memoria RAM.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores de tipado (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
+### [2026-09-08 13:50] — Gestión Multi-Workspace por Pestaña: Aislamiento de Carpetas y Estado de Sidebar por Pestaña Activa
+- **Tipo de cambio**: [Nueva Característica | Refactor | Corrección]
+- **Archivos modificados**:
+  - `src/mainview/components/TabBar.tsx` (añadido campo `folderPath?: string | null` al tipo `Tab`)
+  - `src/mainview/App.tsx` (desacoplado el estado global de carpetas; implementado diccionario `folderTrees: Record<string, FileEntry[]>`; asociado `folderPath` a cada pestaña al abrir archivos sueltos (`null`) o desde carpetas (`folderPath`); derivado reactivo de `currentFolderPath`, `hasFolder` y `sidebarFiles` a partir de la pestaña activa `activeFile`; soporte para múltiples carpetas abiertas simultáneamente sin sobrescribirse; reactividad automática del watcher del backend al alternar entre pestañas de distintas carpetas)
+- **Descripción**:
+  - Se corrigió el problema de estado global donde cambiar entre pestañas de un archivo y de una carpeta no alternaba correctamente el sidebar, y donde cargar una segunda carpeta borraba el árbol de la carpeta anterior.
+  - Ahora cada pestaña almacena el contexto de la carpeta a la que pertenece (`folderPath` o `null` si es archivo independiente).
+  - Al cambiar a una pestaña de un archivo individual, el sidebar y su botón se ocultan instantáneamente.
+  - Al cambiar a una pestaña perteneciente a la Carpeta A, el sidebar muestra inmediatamente el árbol de la Carpeta A con su botón de alternancia activo.
+  - Al cambiar a una pestaña de la Carpeta B, el sidebar muestra el árbol de la Carpeta B sin perder la información de la Carpeta A.
+  - Al abrir o navegar por enlaces relativos o resultados de búsqueda, las pestañas heredan el `folderPath` correspondiente.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores de tipado (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
+### [2026-09-08 13:40] — Visualización Condicional del Botón del Sidebar y Cierre Automático al Arrastrar Archivos
+- **Tipo de cambio**: [Modificación | Corrección]
+- **Archivos modificados**:
+  - `src/mainview/components/TabBar.tsx` (agregada prop `hasFolder` para ocultar por completo el botón del sidebar cuando se visualizan archivos individuales y mostrarlo únicamente cuando se ha cargado una carpeta/workspace)
+  - `src/mainview/App.tsx` (propagado `hasFolder` a `TabBar` y `Sidebar`; configurado el arrastre de archivos individuales en `handleDrop` y apertura por `initialFile` para cerrar el sidebar y deshabilitar el modo carpeta, garantizando que arrastrar un `.md` no muestre el sidebar ni su botón; asegurada la activación de `hasFolder` al arrastrar directorios)
+- **Descripción**:
+  - Al abrir o arrastrar un archivo individual de Markdown, el botón del sidebar en la barra de pestañas (`TabBar`) se oculta y el panel lateral permanece cerrado, evitando mostrar paneles vacíos o controles innecesarios para documentos aislados.
+  - Al cargar o arrastrar una carpeta (workspace), el botón de sidebar fijo a la izquierda de las pestañas vuelve a estar disponible para abrir/cerrar el árbol de archivos.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` validado con 0 errores de tipado (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
 ### [2026-09-08 13:35] — Integración del Botón de Sidebar Fijo en la Fila de Pestañas (`TabBar`)
 - **Tipo de cambio**: [Modificación | Refactor]
 - **Archivos modificados**:

@@ -111,25 +111,18 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
 
 ---
 
-## 6. 🔍 Buscador Global en el Espacio de Trabajo (Full-Text Search)
+## 6. 🔍 Buscador Global en el Espacio de Trabajo (Full-Text Search) — [ELIMINADO DE RAÍZ]
 
-- **Descripción**:
-  - Panel lateral de búsqueda que se activa con `Ctrl+Shift+F` o desde el botón en TopBar.
-  - Indexador en memoria en Bun (`SearchIndexer`) que pre-procesa concurrentemente (bloques de 20 archivos) los archivos `.md` de la carpeta.
-  - Búsqueda línea por línea insensible a mayúsculas/minúsculas.
-  - Vista de resultados agrupada por archivo con número de coincidencias y etiqueta de línea (`L{line}`).
-  - Resaltado de coincidencias en el texto con `<mark>`.
-  - Clic en el resultado abre el archivo, navega automáticamente a la línea y dispara un efecto pulsante (`highlight-pulse`).
-- **Archivos involucrados**:
-  - `src/mainview/components/SearchPanel.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\SearchPanel.tsx`)
-  - `src/bun/index.ts` (`SearchIndexer`, `searchInFolder`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)
-  - `src/mainview/App.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\App.tsx`)
-- **Dependencias en `package.json`**:
-  - `lucide-react`
+- **Estado**: **Eliminado de raíz** (2026-09-08).
+- **Acción ejecutada**:
+  - Eliminado componente `src/mainview/components/SearchPanel.tsx`.
+  - Eliminada clase `SearchIndexer` e indexación de archivos en memoria en `src/bun/index.ts`.
+  - Eliminado endpoint RPC `searchInFolder` en `src/bun/index.ts` y su tipado en `src/shared/types.ts`.
+  - Eliminado botón de búsqueda en `src/mainview/components/TopBar.tsx`, atajo de teclado `Ctrl+Shift+F`, y estados `searchOpen` / `scrollTarget` en `src/mainview/App.tsx`.
 - **Estado / Decisión**:
   - [ ] Mantener intacto
   - [ ] Modificar
-  - [ ] Quitar de raíz
+  - [x] **Quitar de raíz (Completado)**
 
 ---
 

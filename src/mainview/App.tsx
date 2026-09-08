@@ -5,7 +5,6 @@ import MarkdownViewer from "./components/MarkdownViewer";
 import TopBar from "./components/TopBar";
 import TabBar, { type Tab } from "./components/TabBar";
 import Sidebar from "./components/Sidebar";
-import SearchPanel from "./components/SearchPanel";
 import Toast from "./components/Toast";
 import UpdateToast from "./components/UpdateToast";
 import { Upload } from "lucide-react";
@@ -73,22 +72,24 @@ function App() {
   const [activeTabId, setActiveTabId] = useState<string | null>(() => savedSession?.activeTabId || null);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
   const [tabHtmls, setTabHtmls] = useState<Record<string, string>>({});
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => savedSession?.sidebarOpen ?? false);
-  const [sidebarFiles, setSidebarFiles] = useState<FileEntry[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => savedSession?.sidebarOpen ?? true);
+  const [folderTrees, setFolderTrees] = useState<Record<string, FileEntry[]>>({});
   const [isDragOver, setIsDragOver] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string } | null>(null);
-  const [hasFolder, setHasFolder] = useState<boolean>(() => !!savedSession?.folderPath);
-  const [workspacePath, setWorkspacePath] = useState<string | null>(() => savedSession?.folderPath || null);
-  const [scrollTarget, setScrollTarget] = useState<{ path: string; line: number; timestamp: number } | null>(null);
   const electroviewRef = useRef<any>(null);
   const activeTabRef = useRef<string | null>(null);
   const dragCounterRef = useRef(0);
   const watchedFolderRef = useRef<string | null>(null);
-  const lastFolderPath = useRef<string | null>(null);
 
   activeTabRef.current = activeTabId;
+
+  const activeContent = activeTabId ? tabContents[activeTabId] || "" : "";
+  const activeHtml = activeTabId ? tabHtmls[activeTabId] || "" : "";
+  const activeFile = tabs.find((t) => t.id === activeTabId) || null;
+  const currentFolderPath = activeFile?.folderPath || null;
+  const hasFolder = !!currentFolderPath;
+  const sidebarFiles = currentFolderPath ? folderTrees[currentFolderPath] || [] : [];
 
   const darkThemes = useMemo<ThemeId[]>(() => [
     "one-dark",
@@ -128,26 +129,47 @@ function App() {
     root.classList.add(`theme-${themeId}`);
   }, [themeId, isDark]);
 
-  useEffect(() => {
-    if (!sidebarOpen && watchedFolderRef.current) {
-      lastFolderPath.current = watchedFolderRef.current;
-      watchedFolderRef.current = null;
-      electroviewRef.current?.proxy.request.stopWatchingFolder({}).catch(() => {});
-    }
-  }, [sidebarOpen]);
-
   // Save session when relevant states change
   useEffect(() => {
     if (!electroviewRef.current) return;
 
     const session = {
-      folderPath: workspacePath,
       tabs,
       activeTabId,
       sidebarOpen,
     };
     localStorage.setItem("md-reader-session", JSON.stringify(session));
-  }, [tabs, activeTabId, sidebarOpen, workspacePath]);
+  }, [tabs, activeTabId, sidebarOpen]);
+
+  // Sync watched folder when active tab's folder or sidebarOpen changes
+  useEffect(() => {
+    const view = electroviewRef.current;
+    if (!view) return;
+    if (currentFolderPath && sidebarOpen && !currentFolderPath.startsWith("virtual:")) {
+      if (watchedFolderRef.current !== currentFolderPath) {
+        watchedFolderRef.current = currentFolderPath;
+        view.proxy.request.startWatchingFolder({ path: currentFolderPath }).catch(() => {});
+      }
+    } else {
+      if (watchedFolderRef.current) {
+        watchedFolderRef.current = null;
+        view.proxy.request.stopWatchingFolder({}).catch(() => {});
+      }
+    }
+  }, [currentFolderPath, sidebarOpen]);
+
+  // Lazily load folder tree if active tab belongs to a folder not yet in memory
+  useEffect(() => {
+    if (currentFolderPath && !currentFolderPath.startsWith("virtual:") && !folderTrees[currentFolderPath] && electroviewRef.current) {
+      electroviewRef.current.proxy.request.readFolder({ path: currentFolderPath })
+        .then((files: FileEntry[]) => {
+          if (files) {
+            setFolderTrees((prev) => ({ ...prev, [currentFolderPath]: files }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentFolderPath, folderTrees]);
 
   useEffect(() => {
     const rpc = Electroview.defineRPC<MarkdownReaderRPC>({
@@ -165,7 +187,7 @@ function App() {
                 setTabHtmls((h) => ({ ...h, [existing.id]: html }));
                 return prev;
               }
-              return [...prev, { id, path, filename }];
+              return [...prev, { id, path, filename, folderPath: null }];
             });
             setActiveTabId(id);
             setTabContents((prev) => ({ ...prev, [id]: content }));
@@ -183,7 +205,9 @@ function App() {
             });
           },
           folderChanged: ({ files }) => {
-            setSidebarFiles(files);
+            if (watchedFolderRef.current) {
+              setFolderTrees((prev) => ({ ...prev, [watchedFolderRef.current!]: files }));
+            }
           },
         },
       },
@@ -194,27 +218,13 @@ function App() {
     // Load content for restored tabs and set up watchers
     const initRestoredSession = async () => {
       if (savedSession) {
-        const { folderPath, tabs: savedTabs, activeTabId: savedActiveTabId } = savedSession;
-
-        if (folderPath) {
-          try {
-            const files = await rpc.proxy.request.readFolder({ path: folderPath });
-            setSidebarFiles(files);
-            watchedFolderRef.current = folderPath;
-            lastFolderPath.current = folderPath;
-            
-            if (sidebarOpen) {
-              rpc.proxy.request.startWatchingFolder({ path: folderPath }).catch(() => {});
-            }
-          } catch (e) {
-            console.error("Failed to restore folder files:", e);
-          }
-        }
+        const { tabs: savedTabs, activeTabId: savedActiveTabId } = savedSession;
 
         if (savedTabs && savedTabs.length > 0) {
           const contents: Record<string, string> = {};
           const htmls: Record<string, string> = {};
           const validTabs: any[] = [];
+          const uniqueFolders = new Set<string>();
 
           await Promise.all(
             savedTabs.map(async (tab: any) => {
@@ -224,6 +234,9 @@ function App() {
                   contents[tab.id] = res.content;
                   htmls[tab.id] = res.html;
                   validTabs.push(tab);
+                  if (tab.folderPath && !tab.folderPath.startsWith("virtual:")) {
+                    uniqueFolders.add(tab.folderPath);
+                  }
                 }
               } catch {
                 // File deleted or moved while app was closed
@@ -244,6 +257,15 @@ function App() {
             const activeTab = validTabs.find((t: any) => t.id === targetActiveId);
             if (activeTab) {
               rpc.proxy.request.startWatching({ path: activeTab.path }).catch(() => {});
+            }
+
+            for (const fPath of uniqueFolders) {
+              try {
+                const files = await rpc.proxy.request.readFolder({ path: fPath });
+                if (files) {
+                  setFolderTrees((prev) => ({ ...prev, [fPath]: files }));
+                }
+              } catch { }
             }
           } else {
             setTabs([]);
@@ -307,10 +329,6 @@ function App() {
     }
   }, [updateInfo]);
 
-  const activeContent = activeTabId ? tabContents[activeTabId] || "" : "";
-  const activeHtml = activeTabId ? tabHtmls[activeTabId] || "" : "";
-  const activeFile = tabs.find((t) => t.id === activeTabId) || null;
-
   // Auto-compile if content exists but HTML has not yet been populated
   useEffect(() => {
     if (activeTabId && activeContent && !tabHtmls[activeTabId]) {
@@ -336,7 +354,7 @@ function App() {
       const result = await view.proxy.request.getFileContent({ path: filePath });
       if (!result) return;
       const id = `tab-${++tabCounter}`;
-      setTabs((prev) => [...prev, { id, path: filePath, filename: filename || result.filename }]);
+      setTabs((prev) => [...prev, { id, path: filePath, filename: filename || result.filename, folderPath: null }]);
       setActiveTabId(id);
       setTabContents((prev) => ({ ...prev, [id]: result.content }));
       setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
@@ -356,7 +374,7 @@ function App() {
       }
       if (entry.content) {
         const id = `tab-${++tabCounter}`;
-        setTabs((prev) => [...prev, { id, path: entry.path, filename: entry.name }]);
+        setTabs((prev) => [...prev, { id, path: entry.path, filename: entry.name, folderPath: currentFolderPath }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: entry.content! }));
         view.proxy.request.compileMarkdown({ markdown: entry.content! }).then((res: { html: string }) => {
@@ -367,28 +385,22 @@ function App() {
       const result = await view.proxy.request.getFileContent({ path: entry.path });
       if (!result) return;
       const id = `tab-${++tabCounter}`;
-      setTabs((prev) => [...prev, { id, path: entry.path, filename: result.filename }]);
+      setTabs((prev) => [...prev, { id, path: entry.path, filename: result.filename, folderPath: currentFolderPath }]);
       setActiveTabId(id);
       setTabContents((prev) => ({ ...prev, [id]: result.content }));
       setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
       view.proxy.request.startWatching({ path: entry.path });
     },
-    [tabs],
+    [tabs, currentFolderPath],
   );
 
   const openFolderByPath = useCallback(
     async (folderPath: string) => {
       const view = electroviewRef.current;
       if (!view) return;
-      await view.proxy.request.stopWatchingFolder({});
       const files = await view.proxy.request.readFolder({ path: folderPath });
-      setSidebarFiles(files);
+      setFolderTrees((prev) => ({ ...prev, [folderPath]: files }));
       setSidebarOpen(true);
-      watchedFolderRef.current = folderPath;
-      lastFolderPath.current = folderPath;
-      setHasFolder(true);
-      setWorkspacePath(folderPath);
-      view.proxy.request.startWatchingFolder({ path: folderPath });
 
       // Automatically open the first markdown file found or README.md
       const findFirstMd = (list: FileEntry[]): FileEntry | null => {
@@ -410,10 +422,23 @@ function App() {
 
       const firstMd = findFirstMd(files);
       if (firstMd) {
-        handleSelectSidebarFile(firstMd);
+        const existing = tabs.find((t) => t.path === firstMd.path);
+        if (existing) {
+          setActiveTabId(existing.id);
+          return;
+        }
+        const result = await view.proxy.request.getFileContent({ path: firstMd.path });
+        if (result) {
+          const id = `tab-${++tabCounter}`;
+          setTabs((prev) => [...prev, { id, path: firstMd.path, filename: firstMd.name, folderPath }]);
+          setActiveTabId(id);
+          setTabContents((prev) => ({ ...prev, [id]: result.content }));
+          setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
+          view.proxy.request.startWatching({ path: firstMd.path });
+        }
       }
     },
-    [handleSelectSidebarFile],
+    [tabs],
   );
 
   const handleCloseTab = useCallback(
@@ -473,7 +498,7 @@ function App() {
         const result = await view.proxy.request.getFileContent({ path: resolvedPath });
         if (!result) return;
         const id = `tab-${++tabCounter}`;
-        setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename }]);
+        setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename, folderPath: activeFile?.folderPath || null }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: result.content }));
         setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
@@ -494,21 +519,6 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "F") {
-        e.preventDefault();
-        if (hasFolder) {
-          setSearchOpen((p) => !p);
-        }
-      }
-      if (e.key === "Escape" && searchOpen) {
-        setSearchOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [searchOpen, hasFolder]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -615,19 +625,15 @@ function App() {
             };
 
             const tree = await buildTree(entry as FileSystemDirectoryEntry);
-            electroviewRef.current?.proxy.request.stopWatchingFolder({});
-            watchedFolderRef.current = null;
-            lastFolderPath.current = null;
-            setHasFolder(false);
-            setWorkspacePath(null);
-            setSidebarFiles([{ name: entry.name, isDirectory: true, path: entry.name, children: tree }]);
+            const virtualFolderId = `virtual:${entry.name}`;
+            setFolderTrees((prev) => ({ ...prev, [virtualFolderId]: tree }));
             setSidebarOpen(true);
 
             // Open first file in tree
             const firstChild = tree.find((t) => !t.isDirectory && t.content);
             if (firstChild && firstChild.content) {
               const id = `tab-${++tabCounter}`;
-              setTabs((prev) => [...prev, { id, path: firstChild.path, filename: firstChild.name }]);
+              setTabs((prev) => [...prev, { id, path: firstChild.path, filename: firstChild.name, folderPath: virtualFolderId }]);
               setTabContents((prev) => ({ ...prev, [id]: firstChild.content! }));
               setActiveTabId(id);
             }
@@ -645,7 +651,7 @@ function App() {
                 const text = await blob.text();
                 const filePath = (blob as any)?.path || fileEntry.name;
                 const id = `tab-${++tabCounter}`;
-                setTabs((prev) => [...prev, { id, path: filePath, filename: fileEntry.name }]);
+                setTabs((prev) => [...prev, { id, path: filePath, filename: fileEntry.name, folderPath: null }]);
                 setTabContents((prev) => ({ ...prev, [id]: text }));
                 setActiveTabId(id);
                 if ((blob as any)?.path) {
@@ -658,7 +664,7 @@ function App() {
                 const text = await rawFile.text();
                 const filePath = (rawFile as any)?.path || rawFile.name;
                 const id = `tab-${++tabCounter}`;
-                setTabs((prev) => [...prev, { id, path: filePath, filename: rawFile.name }]);
+                setTabs((prev) => [...prev, { id, path: filePath, filename: rawFile.name, folderPath: null }]);
                 setTabContents((prev) => ({ ...prev, [id]: text }));
                 setActiveTabId(id);
                 if ((rawFile as any)?.path) {
@@ -674,55 +680,17 @@ function App() {
   );
 
   const handleToggleSidebar = useCallback(() => {
-    const next = !sidebarOpen;
-    setSidebarOpen(next);
-    if (next && lastFolderPath.current && !watchedFolderRef.current) {
-      const view = electroviewRef.current;
-      if (view) {
-        watchedFolderRef.current = lastFolderPath.current;
-        view.proxy.request.startWatchingFolder({ path: lastFolderPath.current }).catch(() => {});
-      }
-    }
-  }, [sidebarOpen]);
+    if (!hasFolder) return;
+    setSidebarOpen((p) => !p);
+  }, [hasFolder]);
 
   return (
     <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
       <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition">
-        <TopBar
-          hasFolder={hasFolder}
-          searchOpen={searchOpen}
-          onToggleSearch={useCallback(() => {
-            if (hasFolder) setSearchOpen((p) => !p);
-          }, [hasFolder])}
-        />
+        <TopBar />
         <div className="flex-1 flex min-h-0">
-          {searchOpen && (            <SearchPanel
-              folderPath={lastFolderPath.current || watchedFolderRef.current || ""}
-              electroview={electroviewRef.current}
-              onSelectFile={(path, line) => {
-                setScrollTarget({ path, line, timestamp: Date.now() });
-                const existing = tabs.find((t) => t.path === path);
-                if (existing) {
-                  setActiveTabId(existing.id);
-                  return;
-                }
-                const view = electroviewRef.current;
-                if (!view) return;
-                view.proxy.request.getFileContent({ path }).then((result: { content: string; html: string; filename: string }) => {
-                  if (!result) return;
-                  const id = `tab-${++tabCounter}`;
-                  setTabs((prev) => [...prev, { id, path, filename: result.filename }]);
-                  setActiveTabId(id);
-                  setTabContents((prev) => ({ ...prev, [id]: result.content }));
-                  setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
-                  view.proxy.request.startWatching({ path });
-                });
-              }}
-              onClose={() => setSearchOpen(false)}
-            />
-          )}
-  <Sidebar
-            open={sidebarOpen}
+          <Sidebar
+            open={sidebarOpen && hasFolder}
             files={sidebarFiles}
             activePath={activeFile?.path || null}
             onSelectFile={handleSelectSidebarFile}
@@ -748,6 +716,7 @@ function App() {
               onSelectTab={handleSelectTab}
               onCloseTab={handleCloseTab}
               onReorderTabs={handleReorderTabs}
+              hasFolder={hasFolder}
               sidebarOpen={sidebarOpen}
               onToggleSidebar={handleToggleSidebar}
             />
@@ -756,7 +725,6 @@ function App() {
                 content={activeContent}
                 html={activeHtml}
                 onOpenLink={handleOpenLink}
-                scrollToLine={scrollTarget && scrollTarget.path === activeFile?.path ? scrollTarget : null}
               />
             </main>
           </div>

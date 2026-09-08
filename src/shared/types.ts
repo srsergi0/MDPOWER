@@ -49,10 +49,6 @@ export type MarkdownReaderRPC = {
         params: {};
         response: {};
       };
-      searchInFolder: {
-        params: { path: string; query: string };
-        response: { path: string; filename: string; line: number; content: string }[];
-      };
       openExternalUrl: {
         params: { url: string };
         response: { success: boolean };
