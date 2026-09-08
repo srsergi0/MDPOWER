@@ -1,6 +1,6 @@
 {
 	"name": "mdpower",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "MDPOWER - High-performance native Markdown reader & power viewer",
 	"scripts": {
 		"start": "vite build && electrobun dev",

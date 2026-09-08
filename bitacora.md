@@ -4,6 +4,16 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 17:00] — Release v1.0.3 (enlaces md en nueva pestaña)
+- **Tipo de cambio**: [Release]
+- **Archivos modificados**:
+  - `package.json` (1.0.2 → 1.0.3)
+  - `electrobun.config.ts` (1.0.2 → 1.0.3)
+- **Descripción**:
+  - Bump de versión para publicar fix de enlaces md (`./nota.md`, `#anclas`, externos) con fallback por nombre. `vite build` OK. Tag `v1.0.3` dispara `.github/workflows/release.yml` (Win/Mac/Linux).
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` 0 errores, `bun run vite build` OK en 28s.
+
 ### [2026-09-08 16:45] — Fallback de enlaces por nombre de archivo (fix "No se pudo abrir")
 - **Tipo de cambio**: [Corrección]
 - **Archivos modificados**:
