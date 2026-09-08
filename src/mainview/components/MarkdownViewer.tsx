@@ -316,8 +316,9 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
     
     while (current) {
       path.push(current);
-      if (current.parentId) {
-        current = headings.find(h => h.id === current.parentId);
+      const parentId: string | null = current.parentId;
+      if (parentId) {
+        current = headings.find((h) => h.id === parentId);
       } else {
         break;
       }
@@ -597,8 +598,8 @@ export default function MarkdownViewer({ content, onOpenLink, scrollToLine }: Pr
       <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] gap-4">
         <FileText className="w-12 h-12" strokeWidth={1.5} />
         <div className="text-center">
-          <p className="text-sm">Drop a Markdown file here</p>
-          <p className="text-xs mt-1">or use the toolbar to open a file</p>
+          <p className="text-sm font-medium text-[var(--text-main)]">Drop markdown files or folders here</p>
+          <p className="text-xs mt-1 text-[var(--text-muted)]">Drag and drop any .md file or workspace directory to start viewing</p>
         </div>
       </div>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Sparkles, Download, X, ArrowRight } from "lucide-react";
 
 type Props = {
@@ -24,18 +24,17 @@ export default function UpdateToast({ latestVersion, onDownload, onClose }: Prop
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-[var(--bg-sidebar)] border border-[var(--border-main)] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.15)] overflow-hidden backdrop-blur-md bg-opacity-95 ${
-        isAnimatingOut ? "animate-slide-out-right" : "animate-slide-in-right"
-      }`}
+      className={`fixed bottom-6 right-6 z-[100] max-w-sm w-full bg-[var(--bg-sidebar)] border border-[var(--border-main)] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.15)] overflow-hidden backdrop-blur-md bg-opacity-95 ${isAnimatingOut ? "animate-slide-out-right" : "animate-slide-in-right"
+        }`}
     >
       {/* Top accent line with animated gradient */}
       <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
-      
+
       <div className="p-4 flex gap-3.5">
         <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/15 to-purple-500/15 text-[var(--accent-blue)] border border-blue-500/20">
           <Sparkles className="w-5 h-5 animate-pulse text-blue-500" />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-[var(--text-main)] tracking-tight">
@@ -52,7 +51,7 @@ export default function UpdateToast({ latestVersion, onDownload, onClose }: Prop
           <p className="mt-1 text-xs text-[var(--text-muted)] leading-normal">
             La versión <span className="font-semibold text-[var(--text-main)]">v{latestVersion}</span> de MDPOWER ya está disponible. Descárgala para disfrutar de las últimas mejoras.
           </p>
-          
+
           <div className="mt-4 flex gap-2 justify-end items-center">
             <button
               onClick={handleClose}

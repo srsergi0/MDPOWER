@@ -126,7 +126,7 @@ export default function Sidebar({ files, activePath, onSelectFile, open }: Props
             <div className="text-center">
               <p className="text-xs font-semibold text-[var(--text-main)]">No workspace open</p>
               <p className="text-[11px] text-[var(--text-muted)] mt-1 max-w-[160px] mx-auto leading-relaxed">
-                Open a folder to see your files here
+                Drop a folder to see your files here
               </p>
             </div>
           </div>

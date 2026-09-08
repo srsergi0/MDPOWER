@@ -33,10 +33,6 @@ export type MarkdownReaderRPC = {
         params: {};
         response: {};
       };
-      saveFile: {
-        params: { path: string; content: string };
-        response: {};
-      };
       readFolder: {
         params: { path: string };
         response: FileEntry[];
@@ -68,7 +64,6 @@ export type MarkdownReaderRPC = {
     };
     messages: {
       log: { msg: string };
-      folderChanged: { files: FileEntry[] };
     };
   };
   webview: {
@@ -76,6 +71,7 @@ export type MarkdownReaderRPC = {
     messages: {
       initialFile: { path: string; content: string; filename: string };
       fileChanged: { path: string; content: string };
+      folderChanged: { files: FileEntry[] };
     };
   };
 };

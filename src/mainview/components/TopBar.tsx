@@ -1,13 +1,9 @@
-import { PanelLeft, PanelLeftClose, PanelLeftOpen, File, FolderOpen, Eye, PenSquare, Search } from "lucide-react";
+import { PanelLeft, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import ExportMenu from "./ExportMenu";
 import type { ExportMode } from "./SettingsModal";
 import ThemeMenu from "./ThemeMenu";
 
 type Props = {
-  onOpenFile: () => void;
-  onOpenFolder: () => void;
-  isEditing: boolean;
-  onToggleEdit: () => void;
   activeFile: string | null;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
@@ -20,10 +16,6 @@ type Props = {
 const btn = "p-2 rounded-md transition-colors active:scale-95";
 
 export default function TopBar({
-  onOpenFile,
-  onOpenFolder,
-  isEditing,
-  onToggleEdit,
   activeFile,
   sidebarOpen,
   onToggleSidebar,
@@ -65,20 +57,6 @@ export default function TopBar({
         </button>
         <div className="w-px h-4 bg-[var(--border-main)] mx-0.5" aria-hidden="true" />
         <button
-          onClick={onOpenFile}
-          aria-label="Open file"
-          className={`${btn} ${iconHover} ${iconColor}`}
-        >
-          <File className="w-4 h-4" />
-        </button>
-        <button
-          onClick={onOpenFolder}
-          aria-label="Open folder"
-          className={`${btn} ${iconHover} ${iconColor}`}
-        >
-          <FolderOpen className="w-4 h-4" />
-        </button>
-        <button
           onClick={onToggleSearch}
           disabled={!hasFolder}
           aria-label={searchOpen ? "Close search" : "Open search (Ctrl+Shift+F)"}
@@ -93,18 +71,7 @@ export default function TopBar({
         >
           <Search className="w-4 h-4" />
         </button>
-        {activeFile && (
-          <>
-            <div className="w-px h-4 bg-[var(--border-main)] mx-0.5" aria-hidden="true" />
-            <button
-              onClick={onToggleEdit}
-              aria-label={isEditing ? "View rendered" : "Edit source"}
-              className={`${btn} ${isEditing ? activeBg : iconHover} ${isEditing ? textColor : iconColor}`}
-            >
-              {isEditing ? <Eye className="w-4 h-4" /> : <PenSquare className="w-4 h-4" />}
-            </button>
-          </>
-        )}
+
       </div>
       <div className="flex items-center h-full pr-1">
         <ExportMenu onSelect={onExportSelect} disabled={!activeFile} />

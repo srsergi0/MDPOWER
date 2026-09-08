@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef, createContext, useContext, us
 import { Electroview } from "electrobun/view";
 import type { MarkdownReaderRPC, FileEntry } from "../shared/types";
 import MarkdownViewer from "./components/MarkdownViewer";
-import MarkdownEditor from "./components/MarkdownEditor";
 import TopBar from "./components/TopBar";
 import TabBar, { type Tab } from "./components/TabBar";
 import Sidebar from "./components/Sidebar";
@@ -75,7 +74,6 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>(() => savedSession?.tabs || []);
   const [activeTabId, setActiveTabId] = useState<string | null>(() => savedSession?.activeTabId || null);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState<boolean>(() => !!savedSession?.isEditing);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => savedSession?.sidebarOpen ?? false);
   const [sidebarFiles, setSidebarFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -150,10 +148,9 @@ function App() {
       tabs,
       activeTabId,
       sidebarOpen,
-      isEditing,
     };
     localStorage.setItem("md-reader-session", JSON.stringify(session));
-  }, [tabs, activeTabId, sidebarOpen, isEditing, workspacePath]);
+  }, [tabs, activeTabId, sidebarOpen, workspacePath]);
 
   useEffect(() => {
     const rpc = Electroview.defineRPC<MarkdownReaderRPC>({
@@ -299,36 +296,25 @@ function App() {
   const activeContent = activeTabId ? tabContents[activeTabId] || "" : "";
   const activeFile = tabs.find((t) => t.id === activeTabId) || null;
 
-  const handleOpenFile = useCallback(async () => {
-    const view = electroviewRef.current;
-    if (!view) return;
-    const result = await view.proxy.request.openFileDialog({});
-    if (!result) return;
-    const { path, content, filename } = result;
-    const id = `tab-${++tabCounter}`;
-    setTabs((prev) => [...prev, { id, path, filename }]);
-    setActiveTabId(id);
-    setTabContents((prev) => ({ ...prev, [id]: content }));
-    setIsEditing(false);
-    view.proxy.request.startWatching({ path });
-  }, []);
-
-  const handleOpenFolder = useCallback(async () => {
-    const view = electroviewRef.current;
-    if (!view) return;
-    const paths = await view.proxy.request.openFolderDialog({});
-    if (!paths || paths.length === 0 || !paths[0]) return;
-    const folderPath = paths[0];
-    await view.proxy.request.stopWatchingFolder({});
-    const files = await view.proxy.request.readFolder({ path: folderPath });
-    setSidebarFiles(files);
-    setSidebarOpen(true);
-    watchedFolderRef.current = folderPath;
-    lastFolderPath.current = folderPath;
-    setHasFolder(true);
-    setWorkspacePath(folderPath);
-    view.proxy.request.startWatchingFolder({ path: folderPath });
-  }, []);
+  const openFileByPath = useCallback(
+    async (filePath: string, filename?: string) => {
+      const view = electroviewRef.current;
+      if (!view) return;
+      const existing = tabs.find((t) => t.path === filePath);
+      if (existing) {
+        setActiveTabId(existing.id);
+        return;
+      }
+      const result = await view.proxy.request.getFileContent({ path: filePath });
+      if (!result) return;
+      const id = `tab-${++tabCounter}`;
+      setTabs((prev) => [...prev, { id, path: filePath, filename: filename || result.filename }]);
+      setActiveTabId(id);
+      setTabContents((prev) => ({ ...prev, [id]: result.content }));
+      view.proxy.request.startWatching({ path: filePath });
+    },
+    [tabs],
+  );
 
   const handleSelectSidebarFile = useCallback(
     async (entry: FileEntry) => {
@@ -337,7 +323,6 @@ function App() {
       const existing = tabs.find((t) => t.path === entry.path);
       if (existing) {
         setActiveTabId(existing.id);
-        setIsEditing(false);
         return;
       }
       if (entry.content) {
@@ -345,7 +330,6 @@ function App() {
         setTabs((prev) => [...prev, { id, path: entry.path, filename: entry.name }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: entry.content! }));
-        setIsEditing(false);
         return;
       }
       const result = await view.proxy.request.getFileContent({ path: entry.path });
@@ -354,10 +338,49 @@ function App() {
       setTabs((prev) => [...prev, { id, path: entry.path, filename: result.filename }]);
       setActiveTabId(id);
       setTabContents((prev) => ({ ...prev, [id]: result.content }));
-      setIsEditing(false);
       view.proxy.request.startWatching({ path: entry.path });
     },
     [tabs],
+  );
+
+  const openFolderByPath = useCallback(
+    async (folderPath: string) => {
+      const view = electroviewRef.current;
+      if (!view) return;
+      await view.proxy.request.stopWatchingFolder({});
+      const files = await view.proxy.request.readFolder({ path: folderPath });
+      setSidebarFiles(files);
+      setSidebarOpen(true);
+      watchedFolderRef.current = folderPath;
+      lastFolderPath.current = folderPath;
+      setHasFolder(true);
+      setWorkspacePath(folderPath);
+      view.proxy.request.startWatchingFolder({ path: folderPath });
+
+      // Automatically open the first markdown file found or README.md
+      const findFirstMd = (list: FileEntry[]): FileEntry | null => {
+        let first: FileEntry | null = null;
+        for (const item of list) {
+          if (!item.isDirectory) {
+            if (/^readme\.md$/i.test(item.name)) return item;
+            if (!first) first = item;
+          } else if (item.children) {
+            const childMatch = findFirstMd(item.children);
+            if (childMatch) {
+              if (/^readme\.md$/i.test(childMatch.name)) return childMatch;
+              if (!first) first = childMatch;
+            }
+          }
+        }
+        return first;
+      };
+
+      const firstMd = findFirstMd(files);
+      if (firstMd) {
+        handleSelectSidebarFile(firstMd);
+      }
+    },
+    [handleSelectSidebarFile],
   );
 
   const handleCloseTab = useCallback(
@@ -386,7 +409,6 @@ function App() {
       const tab = tabs.find((t) => t.id === tabId);
       if (!tab) return;
       setActiveTabId(tabId);
-      setIsEditing(false);
       const view = electroviewRef.current;
       if (view) {
         view.proxy.request.stopWatching({});
@@ -394,24 +416,6 @@ function App() {
       }
     },
     [tabs],
-  );
-
-  const handleToggleEdit = useCallback(() => {
-    setIsEditing((prev) => !prev);
-  }, []);
-
-  const handleSave = useCallback(
-    async (content: string) => {
-      const tab = activeFile;
-      if (!tab) return;
-      const view = electroviewRef.current;
-      if (!view) return;
-      await view.proxy.request.saveFile({ path: tab.path, content });
-      setTabContents((prev) => ({ ...prev, [tab.id]: content }));
-      view.proxy.request.startWatching({ path: tab.path });
-      setToastMsg("Saved!");
-    },
-    [activeFile],
   );
 
   const handlePrint = useCallback(
@@ -481,7 +485,6 @@ function App() {
         const existing = tabs.find((t) => t.path === resolvedPath);
         if (existing) {
           setActiveTabId(existing.id);
-          setIsEditing(false);
           return;
         }
         const result = await view.proxy.request.getFileContent({ path: resolvedPath });
@@ -490,7 +493,6 @@ function App() {
         setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: result.content }));
-        setIsEditing(false);
         view.proxy.request.startWatching({ path: resolvedPath });
       } catch (err) {
         console.error("Failed to open link:", err);
@@ -555,98 +557,142 @@ function App() {
       setIsDragOver(false);
 
       const items = Array.from(e.dataTransfer.items);
+      const dataTransferFiles = Array.from(e.dataTransfer.files);
 
-      for (const item of items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const rawFile = dataTransferFiles[i] || (item as any).getAsFile?.();
+        const systemPath = (rawFile as any)?.path;
         const entry = (item as any).webkitGetAsEntry?.() as FileSystemEntry | null;
-        if (!entry) continue;
 
-        if (entry.isDirectory) {
-          const buildTree = async (
-            dirEntry: FileSystemDirectoryEntry,
-          ): Promise<FileEntry[]> => {
-            const reader = dirEntry.createReader();
-            const allEntries: FileSystemEntry[] = [];
-            await new Promise<void>((resolve) => {
-              const readBatch = () => {
-                reader.readEntries((batch) => {
-                  if (batch.length === 0) resolve();
-                  else { allEntries.push(...Array.from(batch)); readBatch(); }
-                });
-              };
-              readBatch();
-            });
+        // Check if dropped item is a directory
+        if (entry?.isDirectory || (rawFile && (rawFile as any).type === "" && systemPath && !systemPath.includes("."))) {
+          if (systemPath && electroviewRef.current) {
+            try {
+              await openFolderByPath(systemPath);
+              continue;
+            } catch (err) {
+              console.warn("Direct folder open failed, falling back to entry reader", err);
+            }
+          }
 
-            const result: FileEntry[] = [];
-            for (const e of allEntries) {
-              if (e.isFile) {
-                const name = e.name.toLowerCase();
-                if (name.endsWith(".md") || name.endsWith(".markdown")) {
-                  const file = await new Promise<File>((resolve) =>
-                    (e as FileSystemFileEntry).file(resolve),
-                  );
-                  const content = await file.text();
+          // Fallback if system path is not accessible directly
+          if (entry?.isDirectory) {
+            const buildTree = async (
+              dirEntry: FileSystemDirectoryEntry,
+            ): Promise<FileEntry[]> => {
+              const reader = dirEntry.createReader();
+              const allEntries: FileSystemEntry[] = [];
+              await new Promise<void>((resolve) => {
+                const readBatch = () => {
+                  reader.readEntries((batch) => {
+                    if (batch.length === 0) resolve();
+                    else { allEntries.push(...Array.from(batch)); readBatch(); }
+                  });
+                };
+                readBatch();
+              });
+
+              const result: FileEntry[] = [];
+              for (const el of allEntries) {
+                if (el.isFile) {
+                  const name = el.name.toLowerCase();
+                  if (name.endsWith(".md") || name.endsWith(".markdown")) {
+                    const f = await new Promise<File>((resolve) =>
+                      (el as FileSystemFileEntry).file(resolve),
+                    );
+                    const content = await f.text();
+                    result.push({
+                      name: el.name,
+                      isDirectory: false,
+                      path: (f as any).path || el.name,
+                      content,
+                    });
+                  }
+                } else if (el.isDirectory) {
+                  if (el.name === "node_modules" || el.name.startsWith(".")) {
+                    continue;
+                  }
+                  const children = await buildTree(el as FileSystemDirectoryEntry);
                   result.push({
-                    name: e.name,
-                    isDirectory: false,
-                    path: e.name,
-                    content,
+                    name: el.name,
+                    isDirectory: true,
+                    path: el.name,
+                    children,
                   });
                 }
-              } else if (e.isDirectory) {
-                if (e.name === "node_modules" || e.name.startsWith(".")) {
-                  continue;
+              }
+              result.sort((a, b) => {
+                if (a.isDirectory && !b.isDirectory) return -1;
+                if (!a.isDirectory && b.isDirectory) return 1;
+                return a.name.localeCompare(b.name);
+              });
+              return result;
+            };
+
+            const tree = await buildTree(entry as FileSystemDirectoryEntry);
+            electroviewRef.current?.proxy.request.stopWatchingFolder({});
+            watchedFolderRef.current = null;
+            lastFolderPath.current = null;
+            setHasFolder(false);
+            setWorkspacePath(null);
+            setSidebarFiles([{ name: entry.name, isDirectory: true, path: entry.name, children: tree }]);
+            setSidebarOpen(true);
+
+            // Open first file in tree
+            const firstChild = tree.find((t) => !t.isDirectory && t.content);
+            if (firstChild && firstChild.content) {
+              const id = `tab-${++tabCounter}`;
+              setTabs((prev) => [...prev, { id, path: firstChild.path, filename: firstChild.name }]);
+              setTabContents((prev) => ({ ...prev, [id]: firstChild.content! }));
+              setActiveTabId(id);
+            }
+          }
+        } else {
+          // File dropped
+          if (systemPath && (systemPath.toLowerCase().endsWith(".md") || systemPath.toLowerCase().endsWith(".markdown"))) {
+            await openFileByPath(systemPath, rawFile?.name);
+          } else {
+            const fileEntry = entry as FileSystemFileEntry | null;
+            if (fileEntry) {
+              const name = fileEntry.name.toLowerCase();
+              if (name.endsWith(".md") || name.endsWith(".markdown")) {
+                const blob = await new Promise<File>((resolve) => fileEntry.file(resolve));
+                const text = await blob.text();
+                const filePath = (blob as any)?.path || fileEntry.name;
+                const id = `tab-${++tabCounter}`;
+                setTabs((prev) => [...prev, { id, path: filePath, filename: fileEntry.name }]);
+                setTabContents((prev) => ({ ...prev, [id]: text }));
+                setActiveTabId(id);
+                if ((blob as any)?.path) {
+                  electroviewRef.current?.proxy.request.startWatching({ path: filePath });
                 }
-                const children = await buildTree(e as FileSystemDirectoryEntry);
-                result.push({
-                  name: e.name,
-                  isDirectory: true,
-                  path: e.name,
-                  children,
-                });
+              }
+            } else if (rawFile) {
+              const name = rawFile.name.toLowerCase();
+              if (name.endsWith(".md") || name.endsWith(".markdown")) {
+                const text = await rawFile.text();
+                const filePath = (rawFile as any)?.path || rawFile.name;
+                const id = `tab-${++tabCounter}`;
+                setTabs((prev) => [...prev, { id, path: filePath, filename: rawFile.name }]);
+                setTabContents((prev) => ({ ...prev, [id]: text }));
+                setActiveTabId(id);
+                if ((rawFile as any)?.path) {
+                  electroviewRef.current?.proxy.request.startWatching({ path: filePath });
+                }
               }
             }
-            result.sort((a, b) => {
-              if (a.isDirectory && !b.isDirectory) return -1;
-              if (!a.isDirectory && b.isDirectory) return 1;
-              return a.name.localeCompare(b.name);
-            });
-            return result;
-          };
-
-          const tree = await buildTree(entry as FileSystemDirectoryEntry);
-          electroviewRef.current?.proxy.request.stopWatchingFolder({});
-          watchedFolderRef.current = null;
-          lastFolderPath.current = null;
-          setHasFolder(false);
-          setWorkspacePath(null);
-          setSidebarFiles([{ name: entry.name, isDirectory: true, path: entry.name, children: tree }]);
-          setSidebarOpen(true);
-        } else {
-          const file = (entry as FileSystemFileEntry);
-          const name = file.name.toLowerCase();
-          if (name.endsWith(".md") || name.endsWith(".markdown")) {
-            const blob = await new Promise<File>((resolve) => file.file(resolve));
-            const text = await blob.text();
-            const id = `tab-${++tabCounter}`;
-            setTabs((prev) => [...prev, { id, path: file.name, filename: file.name }]);
-            setTabContents((prev) => ({ ...prev, [id]: text }));
-            setActiveTabId(id);
           }
         }
       }
-      setIsEditing(false);
     },
-    [],
+    [openFolderByPath, openFileByPath],
   );
 
   return (
     <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
       <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition">
         <TopBar
-          onOpenFile={handleOpenFile}
-          onOpenFolder={handleOpenFolder}
-          isEditing={isEditing}
-          onToggleEdit={handleToggleEdit}
           activeFile={activeFile?.path || null}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => {
@@ -676,7 +722,6 @@ function App() {
                 const existing = tabs.find((t) => t.path === path);
                 if (existing) {
                   setActiveTabId(existing.id);
-                  setIsEditing(false);
                   return;
                 }
                 const view = electroviewRef.current;
@@ -687,7 +732,6 @@ function App() {
                   setTabs((prev) => [...prev, { id, path, filename: result.filename }]);
                   setActiveTabId(id);
                   setTabContents((prev) => ({ ...prev, [id]: result.content }));
-                  setIsEditing(false);
                   view.proxy.request.startWatching({ path });
                 });
               }}
@@ -725,15 +769,11 @@ function App() {
               />
             )}
             <main className="flex-1 overflow-auto">
-              {activeFile && isEditing ? (
-                <MarkdownEditor content={activeContent} onSave={handleSave} />
-              ) : (
-                <MarkdownViewer
-                  content={activeContent}
-                  onOpenLink={handleOpenLink}
-                  scrollToLine={scrollTarget && scrollTarget.path === activeFile?.path ? scrollTarget : null}
-                />
-              )}
+              <MarkdownViewer
+                content={activeContent}
+                onOpenLink={handleOpenLink}
+                scrollToLine={scrollTarget && scrollTarget.path === activeFile?.path ? scrollTarget : null}
+              />
             </main>
           </div>
         </div>
