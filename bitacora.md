@@ -4,6 +4,28 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 15:10] — Migración de TabBar a solo Tailwind (sin TabBar.css)
+- **Tipo de cambio**: [Refactor]
+- **Archivos modificados**:
+  - `src/mainview/components/TabBar.tsx`
+- **Descripción**:
+  - Eliminado import de `./TabBar.css` (el archivo ni existía en disco) y convertidas todas las clases `premium-*` a utilidades Tailwind con valores arbitrarios sobre las variables del tema (`bg-[var(--bg-sidebar)]`, etc.).
+  - Fades laterales con `before:/after:`, hover con `data-[active=false]:hover:before:`, close con `group-hover/group-focus-within/group-data-[active=true]` + `[@media(hover:none)]:opacity-100`, y `motion-reduce:[&_*]` para reducir movimiento. Keyframes `premium-tab-shine` inline en `<style>` (solo se renderiza el shine cuando el tab está activo).
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` con 0 errores.
+
+### [2026-09-08 15:00] — Instalación de motion y corrección de tipos en TabBar
+- **Tipo de cambio**: [Corrección]
+- **Archivos modificados**:
+  - `package.json`
+  - `bun.lock`
+  - `src/mainview/components/TabBar.tsx`
+- **Descripción**:
+  - Instalado paquete `motion@13.2.0` (`bun add motion`) para resolver `Cannot find module 'motion/react'` y los errores `implicit any` en handlers de drag.
+  - Casteo de `event as unknown as DragEvent<HTMLDivElement>` en `onDragStart` de `motion.div` porque el tipo de evento de motion (`PointerEvent|MouseEvent|TouchEvent`) no es asignable a `React.DragEvent`.
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` completado con 0 errores (EXIT:0).
+
 ### [2026-09-08 14:30] — Corrección del Corte del Botón de Luna por Unidades de Viewport y Margen de Ventana
 - **Tipo de cambio**: [Corrección]
 - **Archivos modificados**:

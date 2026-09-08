@@ -17,6 +17,7 @@
 		"gray-matter": "^4.0.3",
 		"lucide-react": "^1.18.0",
 		"mermaid": "^11.15.0",
+		"motion": "^13.2.0",
 		"prismjs": "^1.30.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1"

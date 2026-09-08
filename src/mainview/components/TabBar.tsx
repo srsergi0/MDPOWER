@@ -1,5 +1,27 @@
-import { useRef, useCallback, useEffect, useState } from "react";
-import { File, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+} from "react";
+import {
+  AnimatePresence,
+  MotionConfig,
+  motion,
+  useReducedMotion,
+} from "motion/react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  File,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
+
 import ThemeMenu from "./ThemeMenu";
 
 export type Tab = {
@@ -20,6 +42,19 @@ type Props = {
   onToggleSidebar: () => void;
 };
 
+const spring = {
+  type: "spring" as const,
+  stiffness: 460,
+  damping: 36,
+  mass: 0.8,
+};
+
+const toolBtn =
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border-0 bg-transparent p-0 text-[var(--text-muted)] transition-[color,background,opacity] duration-[160ms] hover:enabled:bg-[var(--accent-hover)] hover:enabled:text-[var(--text-main)] data-[active=true]:bg-[var(--accent-hover)] data-[active=true]:text-[var(--text-main)] disabled:cursor-default disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-blue)] focus-visible:outline-offset-[-3px]";
+
+const sideGroup =
+  "flex shrink-0 items-center gap-[2px] border-l border-[var(--border-main)] px-1";
+
 export default function TabBar({
   tabs,
   activeTabId,
@@ -30,139 +65,475 @@ export default function TabBar({
   sidebarOpen,
   onToggleSidebar,
 }: Props) {
+  const instanceId = useId();
+  const reduceMotion = useReducedMotion();
+
   const tabListRef = useRef<HTMLDivElement>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+  const draggedIdRef = useRef<string | null>(null);
+  const pendingFocusRef = useRef<string | null>(null);
 
-  const focusTab = useCallback((index: number) => {
-    const el = tabListRef.current?.querySelector<HTMLElement>(`[data-tab-index="${index}"]`);
-    el?.focus();
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [scrollState, setScrollState] = useState({
+    left: false,
+    right: false,
+  });
+
+  const transition = reduceMotion ? { duration: 0 } : spring;
+  const hasActiveTab = tabs.some((tab) => tab.id === activeTabId);
+
+  const updateScrollState = useCallback(() => {
+    const element = tabListRef.current;
+    if (!element) return;
+
+    const left = element.scrollLeft > 2;
+    const right =
+      element.scrollLeft + element.clientWidth < element.scrollWidth - 2;
+
+    setScrollState((previous) =>
+      previous.left === left && previous.right === right
+        ? previous
+        : { left, right },
+    );
   }, []);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
-    let newIndex = -1;
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      newIndex = (index + 1) % tabs.length;
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      newIndex = (index - 1 + tabs.length) % tabs.length;
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      newIndex = 0;
-    } else if (e.key === "End") {
-      e.preventDefault();
-      newIndex = tabs.length - 1;
-    }
-    if (newIndex >= 0) {
-      onSelectTab(tabs[newIndex].id);
-      focusTab(newIndex);
-    }
-  }, [tabs, onSelectTab, focusTab]);
 
   useEffect(() => {
-    const activeEl = tabListRef.current?.querySelector<HTMLElement>(
-      `[data-tab-id="${activeTabId}"]`,
-    );
-    if (activeEl && document.activeElement?.closest('[role="tablist"]')) {
-      activeEl.focus();
+    const element = tabListRef.current;
+    if (!element) return;
+
+    const observer = new ResizeObserver(updateScrollState);
+
+    observer.observe(element);
+    Array.from(element.children).forEach((child) => {
+      observer.observe(child);
+    });
+
+    updateScrollState();
+
+    return () => observer.disconnect();
+  }, [tabs, updateScrollState]);
+
+  const revealTab = useCallback(
+    (id: string) => {
+      const list = tabListRef.current;
+      const button = tabRefs.current.get(id);
+      const tab = button?.parentElement;
+
+      if (!list || !tab) return;
+
+      const viewport = list.getBoundingClientRect();
+      const bounds = tab.getBoundingClientRect();
+      const padding = 12;
+
+      let distance = 0;
+
+      if (bounds.left < viewport.left + padding) {
+        distance = bounds.left - viewport.left - padding;
+      } else if (bounds.right > viewport.right - padding) {
+        distance = bounds.right - viewport.right + padding;
+      }
+
+      if (distance) {
+        list.scrollBy({
+          left: distance,
+          behavior: reduceMotion ? "auto" : "smooth",
+        });
+      }
+    },
+    [reduceMotion],
+  );
+
+  const focusTab = useCallback(
+    (id: string) => {
+      tabRefs.current.get(id)?.focus({ preventScroll: true });
+      revealTab(id);
+    },
+    [revealTab],
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (activeTabId) revealTab(activeTabId);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeTabId, tabs, revealTab]);
+
+  useEffect(() => {
+    const id = pendingFocusRef.current;
+    if (!id) return;
+
+    pendingFocusRef.current = null;
+
+    if (tabs.some((tab) => tab.id === id)) {
+      focusTab(id);
     }
-  }, [activeTabId]);
+  }, [tabs, focusTab]);
 
-  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(index));
-  }, []);
+  const closeTab = useCallback(
+    (index: number) => {
+      const tab = tabs[index];
+      if (!tab) return;
 
-  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragIndex !== null && dragIndex !== index) {
-      onReorderTabs?.(dragIndex, index);
-      setDragIndex(index);
+      const wrapper = tabRefs.current.get(tab.id)?.parentElement;
+      const hadFocus = wrapper?.contains(document.activeElement);
+      const nextTab = tabs[index + 1] ?? tabs[index - 1];
+
+      if (hadFocus && nextTab) {
+        pendingFocusRef.current = nextTab.id;
+
+        // Evita que el foco quede en un elemento que está desapareciendo.
+        focusTab(nextTab.id);
+      }
+
+      if (tab.id === activeTabId && nextTab) {
+        onSelectTab(nextTab.id);
+      }
+
+      onCloseTab(tab.id);
+    },
+    [tabs, activeTabId, focusTab, onCloseTab, onSelectTab],
+  );
+
+  const handleKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    // Reordenación accesible sin depender del drag & drop.
+    if (
+      onReorderTabs &&
+      event.altKey &&
+      event.shiftKey &&
+      (event.key === "ArrowLeft" || event.key === "ArrowRight")
+    ) {
+      event.preventDefault();
+
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      const target = index + direction;
+
+      if (target >= 0 && target < tabs.length) {
+        pendingFocusRef.current = tabs[index].id;
+        onReorderTabs(index, target);
+      }
+
+      return;
     }
-  }, [dragIndex, onReorderTabs]);
 
-  const handleDragEnd = useCallback(() => {
-    setDragIndex(null);
-  }, []);
+    let target = -1;
+
+    switch (event.key) {
+      case "ArrowRight":
+        target = (index + 1) % tabs.length;
+        break;
+      case "ArrowLeft":
+        target = (index - 1 + tabs.length) % tabs.length;
+        break;
+      case "Home":
+        target = 0;
+        break;
+      case "End":
+        target = tabs.length - 1;
+        break;
+      case "Delete":
+        event.preventDefault();
+        closeTab(index);
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    onSelectTab(tabs[target].id);
+    focusTab(tabs[target].id);
+  };
+
+  const resetDrag = () => {
+    draggedIdRef.current = null;
+    setDraggedId(null);
+    setDropTargetId(null);
+  };
+
+  const handleDragStart = (
+    event: DragEvent<HTMLDivElement>,
+    id: string,
+  ) => {
+    if (!onReorderTabs) {
+      event.preventDefault();
+      return;
+    }
+
+    draggedIdRef.current = id;
+    setDraggedId(id);
+
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  };
+
+  const handleDrop = (
+    event: DragEvent<HTMLDivElement>,
+    targetId: string,
+  ) => {
+    const sourceId = draggedIdRef.current;
+    if (!sourceId || !onReorderTabs) return;
+
+    event.preventDefault();
+
+    const fromIndex = tabs.findIndex((tab) => tab.id === sourceId);
+    const toIndex = tabs.findIndex((tab) => tab.id === targetId);
+
+    if (fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
+      onReorderTabs(fromIndex, toIndex);
+    }
+
+    resetDrag();
+  };
+
+  const scrollTabs = (direction: number) => {
+    const element = tabListRef.current;
+    if (!element) return;
+
+    element.scrollBy({
+      left: direction * Math.max(160, element.clientWidth * 0.65),
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  };
+
+  const draggedIndex = tabs.findIndex((tab) => tab.id === draggedId);
 
   return (
-    <div className="flex items-stretch bg-[var(--bg-sidebar)] border-b border-[var(--border-main)] h-[35px] select-none w-full min-w-0 pr-2">
-      {/* Botón de sidebar fijo a la izquierda (solo si hay carpeta abierta) */}
-      {hasFolder && (
-        <div className="flex-shrink-0 flex items-center px-1 border-r border-[var(--border-main)]">
-          <button
-            onClick={onToggleSidebar}
-            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-            title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-            className={`p-1.5 rounded-md transition-colors active:scale-95 flex items-center justify-center ${
-              sidebarOpen
-                ? "bg-[var(--accent-hover)] text-[var(--text-main)]"
-                : "text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
-            }`}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose className="w-4 h-4" />
-            ) : (
-              <PanelLeftOpen className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Lista de pestañas con scroll horizontal */}
-      <div
-        ref={tabListRef}
-        role="tablist"
-        aria-label="Open files"
-        className="flex-1 flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0"
-      >
-        {tabs.map((tab, index) => {
-          const isActive = tab.id === activeTabId;
-          return (
-            <div
-              key={tab.id}
-              role="tab"
-              data-tab-id={tab.id}
-              data-tab-index={index}
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
-              draggable
-              onClick={() => onSelectTab(tab.id)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnd={handleDragEnd}
-              className={`group flex items-center gap-1.5 px-3 text-[13px] cursor-pointer border-r border-[var(--border-main)] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-[-2px] relative flex-shrink-0 ${
-                isActive
-                  ? "bg-[var(--bg-editor)] text-[var(--text-main)]"
-                  : "bg-[var(--bg-sidebar)] text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
-              } ${dragIndex === index ? "opacity-50" : ""}`}
-              style={isActive ? { boxShadow: "inset 0 -2px 0 var(--accent-blue)" } : undefined}
+    <MotionConfig reducedMotion="user">
+      <style>{`@keyframes premium-tab-shine{0%{opacity:0;transform:translateX(-110%)}25%{opacity:.65}100%{opacity:0;transform:translateX(110%)}}`}</style>
+      <div className="flex h-10 w-full min-w-0 select-none items-stretch border-b border-[var(--border-main)] bg-[var(--bg-sidebar)] pr-1.5 motion-reduce:[&_*]:animate-none motion-reduce:[&_*]:transition-none">
+        <AnimatePresence initial={false}>
+          {hasFolder && (
+            <motion.div
+              className="flex shrink-0 items-center justify-center overflow-hidden border-r border-[var(--border-main)]"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 42, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={transition}
             >
-              <File className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="max-w-32 truncate">{tab.filename}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCloseTab(tab.id);
-                }}
-                aria-label={`Close ${tab.filename}`}
-                className="p-0.5 rounded hover:bg-[var(--accent-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 active:scale-90"
+              <motion.button
+                type="button"
+                onClick={onToggleSidebar}
+                aria-label={sidebarOpen ? "Cerrar panel lateral" : "Abrir panel lateral"}
+                aria-expanded={sidebarOpen}
+                title={sidebarOpen ? "Cerrar panel lateral" : "Abrir panel lateral"}
+                className={toolBtn}
+                data-active={sidebarOpen}
+                whileHover={reduceMotion ? undefined : { scale: 1.06 }}
+                whileTap={reduceMotion ? undefined : { scale: 0.9 }}
               >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                <motion.span
+                  animate={{ rotate: sidebarOpen ? 0 : 180 }}
+                  transition={transition}
+                  className="flex"
+                >
+                  {sidebarOpen ? (
+                    <PanelLeftClose size={16} />
+                  ) : (
+                    <PanelLeftOpen
+                      size={16}
+                      style={{ transform: "rotate(180deg)" }}
+                    />
+                  )}
+                </motion.span>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Selector de tema a la derecha */}
-      <div className="flex-shrink-0 flex items-center px-1.5 border-l border-[var(--border-main)]">
-        <ThemeMenu />
+        <div
+          className="relative min-w-0 flex-1 overflow-hidden before:pointer-events-none before:absolute before:bottom-0 before:left-0 before:top-0 before:z-[5] before:w-5 before:bg-gradient-to-r before:from-[var(--bg-sidebar)] before:to-transparent before:opacity-0 before:transition-opacity before:duration-[180ms] before:content-[''] after:pointer-events-none after:absolute after:bottom-0 after:right-0 after:top-0 after:z-[5] after:w-5 after:bg-gradient-to-l after:from-[var(--bg-sidebar)] after:to-transparent after:opacity-0 after:transition-opacity after:duration-[180ms] after:content-[''] data-[overflow-left=true]:before:opacity-100 data-[overflow-right=true]:after:opacity-100"
+          data-overflow-left={scrollState.left}
+          data-overflow-right={scrollState.right}
+        >
+          <div
+            ref={tabListRef}
+            role="tablist"
+            aria-label="Archivos abiertos"
+            aria-orientation="horizontal"
+            className="relative flex h-full min-w-0 items-stretch overflow-y-hidden overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={updateScrollState}
+            onDragLeave={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                setDropTargetId(null);
+              }
+            }}
+          >
+            <AnimatePresence initial={false} mode="popLayout">
+              {tabs.map((tab, index) => {
+                const isActive = tab.id === activeTabId;
+                const isDragging = tab.id === draggedId;
+                const isDropTarget =
+                  tab.id === dropTargetId && tab.id !== draggedId;
+
+                return (
+                  <motion.div
+                    layout="position"
+                    key={tab.id}
+                    role="presentation"
+                    className="group relative isolate flex max-w-[240px] min-w-[108px] flex-none items-center border-r border-[var(--border-main)] pr-[7px] text-[var(--text-muted)] transition-colors duration-[160ms] hover:text-[var(--text-main)] data-[active=true]:text-[var(--text-main)] data-[dragging=true]:cursor-grabbing before:absolute before:inset-1 before:z-[-1] before:scale-[0.96] before:rounded-md before:bg-[var(--accent-hover)] before:opacity-0 before:transition before:duration-[180ms] before:content-[''] data-[active=false]:hover:before:scale-100 data-[active=false]:hover:before:opacity-100"
+                    data-active={isActive}
+                    data-dragging={isDragging}
+                    draggable={Boolean(onReorderTabs)}
+                    onDragStart={(event) =>
+                      handleDragStart(
+                        event as unknown as DragEvent<HTMLDivElement>,
+                        tab.id,
+                      )
+                    }
+                    onDragOver={(event) => {
+                      if (!draggedIdRef.current || !onReorderTabs) return;
+
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setDropTargetId(tab.id);
+                    }}
+                    onDrop={(event) => handleDrop(event, tab.id)}
+                    onDragEnd={resetDrag}
+                    onAuxClick={(event) => {
+                      if (event.button === 1) {
+                        event.preventDefault();
+                        closeTab(index);
+                      }
+                    }}
+                    initial={{
+                      opacity: 0,
+                      y: reduceMotion ? 0 : 10,
+                      scale: reduceMotion ? 1 : 0.94,
+                    }}
+                    animate={{
+                      opacity: isDragging ? 0.4 : 1,
+                      y: 0,
+                      scale: 1,
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: reduceMotion ? 0 : -8,
+                      scale: reduceMotion ? 1 : 0.94,
+                      transition: { duration: reduceMotion ? 0 : 0.16 },
+                    }}
+                    transition={transition}
+                    onLayoutAnimationComplete={updateScrollState}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId={`${instanceId}-active-surface`}
+                        className="pointer-events-none absolute inset-0 z-[-1] overflow-hidden bg-[var(--bg-editor)]"
+                        transition={transition}
+                        aria-hidden="true"
+                      >
+                        <span className="absolute inset-0 -translate-x-[110%] bg-[linear-gradient(110deg,transparent_20%,var(--accent-hover)_50%,transparent_80%)] opacity-0 group-hover:animate-[premium-tab-shine_700ms_ease-out]" />
+                      </motion.div>
+                    )}
+
+                    <button
+                      ref={(element) => {
+                        if (element) {
+                          tabRefs.current.set(tab.id, element);
+                        } else {
+                          tabRefs.current.delete(tab.id);
+                        }
+                      }}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-keyshortcuts={
+                        onReorderTabs
+                          ? "Delete Alt+Shift+ArrowLeft Alt+Shift+ArrowRight"
+                          : "Delete"
+                      }
+                      tabIndex={isActive || (!hasActiveTab && index === 0) ? 0 : -1}
+                      title={tab.path || tab.filename}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch border-0 bg-transparent py-0 pl-[13px] pr-[9px] text-[13px] text-inherit focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-blue)] focus-visible:outline-offset-[-3px]"
+                      onClick={() => onSelectTab(tab.id)}
+                      onKeyDown={(event) => handleKeyDown(event, index)}
+                    >
+                      <motion.span
+                        className="flex shrink-0"
+                        animate={{
+                          y: isActive && !reduceMotion ? -1 : 0,
+                          rotate: isActive && !reduceMotion ? -6 : 0,
+                          scale: isActive && !reduceMotion ? 1.08 : 1,
+                        }}
+                        transition={transition}
+                      >
+                        <File size={14} aria-hidden="true" />
+                      </motion.span>
+
+                      <span className="max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {tab.filename}
+                      </span>
+                    </button>
+
+                    <motion.button
+                      type="button"
+                      className="inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--text-muted)] opacity-0 transition duration-150 hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-blue)] focus-visible:outline-offset-[-3px] group-focus-within:opacity-100 group-hover:opacity-100 group-data-[active=true]:opacity-100 [@media(hover:none)]:opacity-100"
+                      aria-label={`Cerrar ${tab.filename}`}
+                      title={`Cerrar ${tab.filename}`}
+                      draggable={false}
+                      onDragStart={(event) => event.preventDefault()}
+                      onClick={() => closeTab(index)}
+                      whileHover={
+                        reduceMotion ? undefined : { rotate: 90, scale: 1.1 }
+                      }
+                      whileTap={reduceMotion ? undefined : { scale: 0.8 }}
+                    >
+                      <X size={13} aria-hidden="true" />
+                    </motion.button>
+
+                    {isActive && (
+                      <motion.div
+                        layoutId={`${instanceId}-active-line`}
+                        className="pointer-events-none absolute inset-x-[10px] bottom-0 h-[2px] rounded-t-full bg-[var(--accent-blue)]"
+                        transition={transition}
+                        aria-hidden="true"
+                      />
+                    )}
+
+                    {isDropTarget && (
+                      <div
+                        className={`pointer-events-none absolute bottom-[7px] top-[7px] z-[6] w-[2px] rounded-full bg-[var(--accent-blue)] ${draggedIndex < index ? "right-0" : "left-0"}`}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {(scrollState.left || scrollState.right) && (
+          <div className={sideGroup}>
+            <button
+              type="button"
+              className={toolBtn}
+              aria-label="Desplazar pestañas a la izquierda"
+              disabled={!scrollState.left}
+              onClick={() => scrollTabs(-1)}
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            <button
+              type="button"
+              className={toolBtn}
+              aria-label="Desplazar pestañas a la derecha"
+              disabled={!scrollState.right}
+              onClick={() => scrollTabs(1)}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        )}
+
+        <div className={sideGroup}>
+          <ThemeMenu />
+        </div>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
-
