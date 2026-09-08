@@ -4,7 +4,7 @@ export default {
 	app: {
 		name: "MDPOWER",
 		identifier: "mdpower.electrobun.dev",
-		version: "1.0.4",
+		version: "1.0.5",
 	},
 	build: {
 		copy: {

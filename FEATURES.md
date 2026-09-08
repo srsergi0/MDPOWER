@@ -206,6 +206,7 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
   - `electrobun.config.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\electrobun.config.ts`)
   - `scripts/register-dev.ps1` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\scripts\register-dev.ps1`)
   - `scripts/fix-icons.ps1` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\scripts\fix-icons.ps1`)
+  - `scripts/package-portable.ps1` (portable Windows de un solo exe vía 7-Zip SFX: `bin/MDPOWER.exe` + icono, `bun run package:portable`)
   - `scripts/generate-icons.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\scripts\generate-icons.ts`)
 - **Dependencias en `package.json`**:
   - `electrobun`

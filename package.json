@@ -1,6 +1,6 @@
 {
 	"name": "mdpower",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "MDPOWER - High-performance native Markdown reader & power viewer",
 	"scripts": {
 		"start": "vite build && electrobun dev",
@@ -11,7 +11,8 @@
 		"fix-icons": "powershell -ExecutionPolicy Bypass -File scripts/fix-icons.ps1",
 		"register": "powershell -ExecutionPolicy Bypass -File scripts/register-dev.ps1",
 		"build:prod": "vite build && electrobun build --env=stable",
-		"build:prod:win": "vite build && electrobun build --env=stable && powershell -ExecutionPolicy Bypass -File scripts/fix-icons.ps1"
+		"build:prod:win": "vite build && electrobun build --env=stable && powershell -ExecutionPolicy Bypass -File scripts/fix-icons.ps1",
+		"package:portable": "powershell -ExecutionPolicy Bypass -File scripts/package-portable.ps1"
 	},
 	"dependencies": {
 		"electrobun": "1.18.1",

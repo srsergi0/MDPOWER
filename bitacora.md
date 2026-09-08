@@ -4,6 +4,19 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 17:30] — Portable Windows de un solo exe (7-Zip SFX) + v1.0.5
+- **Tipo de cambio**: [Nueva Característica | Release]
+- **Archivos modificados**:
+  - `scripts/package-portable.ps1` (nuevo)
+  - `package.json` (1.0.4 → 1.0.5, script `package:portable`)
+  - `electrobun.config.ts` (1.0.4 → 1.0.5)
+  - `.github/workflows/release.yml` (paso `Package portable exe` en job Windows)
+  - `FEATURES.md` (§10: script portable)
+- **Descripción**:
+  - Electrobun en Windows no genera un exe único: `Setup.exe` (extractor) necesita el `.tar.zst` y el metadata al lado. El script empaqueta `build/stable-win-x64/MDPOWER/` (normaliza entrada a `bin/MDPOWER.exe` con icono vía rcedit si disponible) en un autoextraíble 7-Zip SFX: doble clic → extrae a temp → arranca. Verificado en local: `stable-win-x64-MDPOWER-Portable.exe` (33.9 MB), `7z l` lista `bin/MDPOWER.exe` + `Resources/*.tar.zst`.
+- **Resultado / Verificación**:
+  - `bun run build:prod` + `bun run package:portable` OK en local. Tag `v1.0.5` publica instalador + portable.
+
 ### [2026-09-08 17:15] — Fix release CI (build:prod multiplataforma) + v1.0.4
 - **Tipo de cambio**: [Corrección | Release]
 - **Archivos modificados**:
