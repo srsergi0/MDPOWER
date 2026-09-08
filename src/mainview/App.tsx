@@ -5,11 +5,9 @@ import MarkdownViewer from "./components/MarkdownViewer";
 import TopBar from "./components/TopBar";
 import TabBar, { type Tab } from "./components/TabBar";
 import Sidebar from "./components/Sidebar";
-import SettingsModal, { type ExportMode } from "./components/SettingsModal";
 import SearchPanel from "./components/SearchPanel";
 import Toast from "./components/Toast";
 import UpdateToast from "./components/UpdateToast";
-import { printMarkdown, type PrintOptions } from "./utils/print";
 import { Upload } from "lucide-react";
 
 declare const __APP_VERSION__: string;
@@ -79,8 +77,6 @@ function App() {
   const [sidebarFiles, setSidebarFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsMode, setSettingsMode] = useState<ExportMode>("print");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string } | null>(null);
   const [hasFolder, setHasFolder] = useState<boolean>(() => !!savedSession?.folderPath);
@@ -218,6 +214,8 @@ function App() {
         if (savedTabs && savedTabs.length > 0) {
           const contents: Record<string, string> = {};
           const htmls: Record<string, string> = {};
+          const validTabs: any[] = [];
+
           await Promise.all(
             savedTabs.map(async (tab: any) => {
               try {
@@ -225,22 +223,31 @@ function App() {
                 if (res) {
                   contents[tab.id] = res.content;
                   htmls[tab.id] = res.html;
+                  validTabs.push(tab);
                 }
-              } catch (e) {
-                console.error("Failed to restore tab content:", tab.path, e);
+              } catch {
+                // File deleted or moved while app was closed
               }
             })
           );
           
-          setTabContents((prev) => ({ ...contents, ...prev }));
-          setTabHtmls((prev) => ({ ...htmls, ...prev }));
+          if (validTabs.length > 0) {
+            setTabs(validTabs);
+            setTabContents((prev) => ({ ...contents, ...prev }));
+            setTabHtmls((prev) => ({ ...htmls, ...prev }));
 
-          // Watch active file, only if it's still the active tab
-          if (savedActiveTabId && activeTabRef.current === savedActiveTabId) {
-            const activeTab = savedTabs.find((t: any) => t.id === savedActiveTabId);
+            const targetActiveId = validTabs.some((t) => t.id === savedActiveTabId)
+              ? savedActiveTabId
+              : validTabs[0].id;
+
+            setActiveTabId(targetActiveId);
+            const activeTab = validTabs.find((t: any) => t.id === targetActiveId);
             if (activeTab) {
               rpc.proxy.request.startWatching({ path: activeTab.path }).catch(() => {});
             }
+          } else {
+            setTabs([]);
+            setActiveTabId(null);
           }
         }
       }
@@ -447,60 +454,6 @@ function App() {
     },
     [tabs],
   );
-
-  const handlePrint = useCallback(
-    async (options: PrintOptions) => {
-      if (!activeContent) return;
-      try {
-        await printMarkdown(activeContent, options);
-      } catch (err) {
-        console.error("Print failed:", err);
-      }
-    },
-    [activeContent],
-  );
-
-  const handleSavePdf = useCallback(
-    async (options: PrintOptions) => {
-      if (!activeContent) return;
-      const view = electroviewRef.current;
-      if (!view) return;
-      try {
-        await view.proxy.request.savePdf({
-          markdown: activeContent,
-          filename: activeFile?.filename || "document.md",
-          options,
-        });
-      } catch (err) {
-        console.error("Save PDF failed:", err);
-      }
-    },
-    [activeContent, activeFile],
-  );
-
-  const handleSaveHtml = useCallback(async () => {
-    if (!activeContent) return;
-    const view = electroviewRef.current;
-    if (!view) return;
-    try {
-      await view.proxy.request.saveHtml({
-        markdown: activeContent,
-        filename: activeFile?.filename || "document.md",
-      });
-      setToastMsg("HTML exported!");
-    } catch (err) {
-      console.error("Save HTML failed:", err);
-    }
-  }, [activeContent, activeFile]);
-
-  const handleOpenSettings = useCallback((mode: ExportMode) => {
-    if (mode === "save-html") {
-      handleSaveHtml();
-      return;
-    }
-    setSettingsMode(mode);
-    setSettingsOpen(true);
-  }, [handleSaveHtml]);
 
   const handleOpenLink = useCallback(
     async (href: string) => {
@@ -720,24 +673,22 @@ function App() {
     [openFolderByPath, openFileByPath],
   );
 
+  const handleToggleSidebar = useCallback(() => {
+    const next = !sidebarOpen;
+    setSidebarOpen(next);
+    if (next && lastFolderPath.current && !watchedFolderRef.current) {
+      const view = electroviewRef.current;
+      if (view) {
+        watchedFolderRef.current = lastFolderPath.current;
+        view.proxy.request.startWatchingFolder({ path: lastFolderPath.current }).catch(() => {});
+      }
+    }
+  }, [sidebarOpen]);
+
   return (
     <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
       <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition">
         <TopBar
-          activeFile={activeFile?.path || null}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => {
-            const next = !sidebarOpen;
-            setSidebarOpen(next);
-            if (next && lastFolderPath.current && !watchedFolderRef.current) {
-              const view = electroviewRef.current;
-              if (view) {
-                watchedFolderRef.current = lastFolderPath.current;
-                view.proxy.request.startWatchingFolder({ path: lastFolderPath.current }).catch(() => {});
-              }
-            }
-          }}
-          onExportSelect={handleOpenSettings}
           hasFolder={hasFolder}
           searchOpen={searchOpen}
           onToggleSearch={useCallback(() => {
@@ -791,15 +742,15 @@ function App() {
                 </div>
               </div>
             )}
-            {tabs.length > 0 && (
-              <TabBar
-                tabs={tabs}
-                activeTabId={activeTabId}
-                onSelectTab={handleSelectTab}
-                onCloseTab={handleCloseTab}
-                onReorderTabs={handleReorderTabs}
-              />
-            )}
+            <TabBar
+              tabs={tabs}
+              activeTabId={activeTabId}
+              onSelectTab={handleSelectTab}
+              onCloseTab={handleCloseTab}
+              onReorderTabs={handleReorderTabs}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={handleToggleSidebar}
+            />
             <main className="flex-1 overflow-auto">
               <MarkdownViewer
                 content={activeContent}
@@ -811,14 +762,6 @@ function App() {
           </div>
         </div>
       </div>
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onPrint={handlePrint}
-        onSavePdf={handleSavePdf}
-        mode={settingsMode}
-        filename={activeFile?.filename || null}
-      />
       <Toast
         message={toastMsg || ""}
         visible={toastMsg !== null}

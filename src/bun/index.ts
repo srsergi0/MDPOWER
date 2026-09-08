@@ -2,8 +2,6 @@ import { BrowserWindow, BrowserView, Utils } from "electrobun/bun";
 import { watch, type FSWatcher } from "fs";
 import { readdir } from "fs/promises";
 import { join, basename } from "path";
-import { tmpdir } from "os";
-import { buildPrintHTML } from "../shared/buildPrintHTML";
 import type { MarkdownReaderRPC, FileEntry } from "../shared/types";
 
 const DEV_SERVER_PORT = 5173;
@@ -248,10 +246,16 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
         return paths;
       },
       getFileContent: async ({ path: filePath }) => {
-        const file = Bun.file(filePath);
-        const content = await file.text();
-        const html = compileMarkdownWithBun(content);
-        return { content, html, filename: basename(filePath) };
+        try {
+          const file = Bun.file(filePath);
+          const exists = await file.exists();
+          if (!exists) return null;
+          const content = await file.text();
+          const html = compileMarkdownWithBun(content);
+          return { content, html, filename: basename(filePath) };
+        } catch {
+          return null;
+        }
       },
       compileMarkdown: async ({ markdown }) => {
         const html = compileMarkdownWithBun(markdown);
@@ -281,9 +285,16 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
             // file might not be readable at the moment
           }
         };
-        currentWatcher = watch(filePath, {} as any, (eventType: string) => {
-          if (eventType === "change") onChange();
-        }) as unknown as FSWatcher;
+        try {
+          const file = Bun.file(filePath);
+          if (await file.exists()) {
+            currentWatcher = watch(filePath, {} as any, (eventType: string) => {
+              if (eventType === "change") onChange();
+            }) as unknown as FSWatcher;
+          }
+        } catch (err) {
+          console.warn("Could not watch file:", filePath, err);
+        }
         return {};
       },
       stopWatching: async () => {
@@ -350,56 +361,11 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
         currentWatchedFolder = null;
         return {};
       },
-      savePdf: async ({ markdown, filename, options }) => {
-        let view: any = null;
-        try {
-          const html = await buildPrintHTML(markdown, options);
-          const WebView = (Bun as any).WebView;
-          view = new WebView({ backend: "chrome" });
-          await view.navigate("data:text/html," + encodeURIComponent(html));
-
-          const result = await view.cdp("Page.printToPDF", {
-            printBackground: true,
-            preferCSSPageSize: true,
-            landscape: options.orientation === "landscape",
-          });
-
-          const pdfName = filename.replace(/\.(md|markdown)$/i, "") + ".pdf";
-          const pdfPath = join(tmpdir(), pdfName);
-          const pdfBuffer = Buffer.from(result.data, "base64");
-          await Bun.write(pdfPath, new Uint8Array(pdfBuffer));
-
-          view.close();
-          view = null;
-
-          Utils.openPath(pdfPath);
-          return { path: pdfPath };
-        } catch (err) {
-          console.error("Failed to generate PDF with Bun.WebView:", err);
-          if (view) {
-            try { view.close(); } catch {}
-          }
-          return null;
-        }
-      },
       searchInFolder: async ({ path: folderPath, query }) => {
         console.log(`Searching folder ${folderPath} for: ${query}`);
         return indexer.search(query);
       },
-      saveHtml: async ({ markdown, filename }) => {
-        try {
-          const { buildStandaloneHTML } = await import("../shared/buildPrintHTML");
-          const html = await buildStandaloneHTML(markdown);
-          const htmlName = filename.replace(/\.(md|markdown)$/i, "") + ".html";
-          const htmlPath = join(tmpdir(), htmlName);
-          await Bun.write(htmlPath, html);
-          Utils.openPath(htmlPath);
-          return { path: htmlPath };
-        } catch (err) {
-          console.error("Failed to save HTML:", err);
-          return null;
-        }
-      },
+
       openExternalUrl: async ({ url }) => {
         try {
           Utils.openExternal(url);

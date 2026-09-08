@@ -19,7 +19,7 @@ export type MarkdownReaderRPC = {
       };
       getFileContent: {
         params: { path: string };
-        response: { content: string; html: string; filename: string };
+        response: { content: string; html: string; filename: string } | null;
       };
       compileMarkdown: {
         params: { markdown: string };
@@ -41,10 +41,6 @@ export type MarkdownReaderRPC = {
         params: { path: string };
         response: FileEntry[];
       };
-      savePdf: {
-        params: { markdown: string; filename: string; options: import("./buildPrintHTML").PrintOptions };
-        response: { path: string } | null;
-      };
       startWatchingFolder: {
         params: { path: string };
         response: {};
@@ -56,10 +52,6 @@ export type MarkdownReaderRPC = {
       searchInFolder: {
         params: { path: string; query: string };
         response: { path: string; filename: string; line: number; content: string }[];
-      };
-      saveHtml: {
-        params: { markdown: string; filename: string };
-        response: { path: string } | null;
       };
       openExternalUrl: {
         params: { url: string };

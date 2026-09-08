@@ -133,41 +133,24 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
 
 ---
 
-## 7. 🖨️ Motor de Impresión y Exportación (PDF & HTML)
+## 7. 🖨️ Motor de Impresión y Exportación (PDF & HTML) [ELIMINADO DE RAÍZ]
 
 - **Descripción**:
-  - Menú desplegable en el TopBar con 3 opciones de exportación:
-    1. **Imprimir**: Ventana emergente con CSS formateado para impresión y llamada a `window.print()`.
-    2. **Guardar como PDF**: Detección automática de Google Chrome o Microsoft Edge en Windows (`findChrome`) y generación headless del PDF mediante `puppeteer-core`. El archivo se guarda en `%TEMP%` y se abre con la app predeterminada del sistema.
-    3. **Exportar a HTML**: Genera un archivo `.html` autocontenido e independiente con estilos para tema claro/oscuro embebidos y lo abre en el navegador.
-  - Modal de configuración de impresión (`SettingsModal`):
-    - Tamaño de página (A4, Letter, Legal).
-    - Orientación (Portrait, Landscape).
-    - Márgenes (None, Narrow, Normal, Wide).
-    - Números de línea en bloques de código.
-    - Generación automática de Tabla de Contenidos (TOC) basada en encabezados.
-  - Script independiente para CLI: `scripts/batch-pdf.ts` para conversión masiva por lotes de carpetas completas a PDF.
-- **Archivos involucrados**:
-  - `src/mainview/components/ExportMenu.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\ExportMenu.tsx`)
-  - `src/mainview/components/SettingsModal.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\SettingsModal.tsx`)
-  - `src/mainview/utils/print.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\utils\print.ts`)
-  - `src/shared/buildPrintHTML.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\shared\buildPrintHTML.ts`)
-  - `src/bun/index.ts` (`savePdf` con `Bun.WebView` y CDP, `saveHtml`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)
-  - `scripts/batch-pdf.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\scripts\batch-pdf.ts`)
-- **Dependencias en `package.json`**:
-  - Ninguna (100% vanilla con `Bun.WebView` y `Bun.markdown`).
-- **Dependencias eliminadas de raíz**:
-  - `puppeteer-core`
-  - `unified`
-  - `remark-parse`
-  - `remark-gfm`
-  - `remark-rehype`
-  - `rehype-stringify`
-- **Nota de impacto**: Exportación 100% nativa sin librerías pesadas externas. Utiliza `Bun.WebView({ backend: "chrome" })` con el comando CDP `Page.printToPDF`, autodetectando Edge o Chrome del sistema.
+  - Eliminado por completo a petición del usuario. La aplicación se enfoca exclusivamente en ser un visor ultra-rápido de Markdown local sin sobrecargas de impresión, navegadores headless o utilidades de exportación.
+- **Archivos eliminados de raíz**:
+  - `src/mainview/components/ExportMenu.tsx`
+  - `src/mainview/components/SettingsModal.tsx`
+  - `src/mainview/components/Modal.tsx`
+  - `src/mainview/utils/print.ts`
+  - `src/shared/buildPrintHTML.ts`
+  - `src/bun/findChromium.ts`
+  - `scripts/batch-pdf.ts`
+- **Manejadores RPC eliminados**:
+  - `savePdf`, `getPrintHtml`, `saveHtml`
 - **Estado / Decisión**:
   - [ ] Mantener intacto
-  - [x] **Modificado (100% Vanilla con Bun.WebView & Bun.markdown)**
-  - [ ] Quitar de raíz
+  - [ ] Modificar
+  - [x] **Quitado de raíz**
 
 ---
 

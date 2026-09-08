@@ -1,13 +1,7 @@
-import { PanelLeft, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
-import ExportMenu from "./ExportMenu";
-import type { ExportMode } from "./SettingsModal";
+import { Search } from "lucide-react";
 import ThemeMenu from "./ThemeMenu";
 
 type Props = {
-  activeFile: string | null;
-  sidebarOpen: boolean;
-  onToggleSidebar: () => void;
-  onExportSelect: (mode: ExportMode) => void;
   hasFolder: boolean;
   searchOpen: boolean;
   onToggleSearch: () => void;
@@ -16,10 +10,6 @@ type Props = {
 const btn = "p-2 rounded-md transition-colors active:scale-95";
 
 export default function TopBar({
-  activeFile,
-  sidebarOpen,
-  onToggleSidebar,
-  onExportSelect,
   hasFolder,
   searchOpen,
   onToggleSearch,
@@ -35,27 +25,7 @@ export default function TopBar({
     <div
       className={`relative flex items-center h-[38px] ${bg} ${border} ${textColor} select-none`}
     >
-      <div
-        className="flex items-center gap-1 px-2 flex-1 min-w-0"
-      >
-        <button
-          onClick={onToggleSidebar}
-          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          className={`group ${btn} ${sidebarOpen ? activeBg : iconHover} ${sidebarOpen ? textColor : iconColor}`}
-        >
-          {sidebarOpen ? (
-            <>
-              <PanelLeft className="w-4 h-4 group-hover:hidden" />
-              <PanelLeftClose className="w-4 h-4 hidden group-hover:block" />
-            </>
-          ) : (
-            <>
-              <PanelLeft className="w-4 h-4 group-hover:hidden" />
-              <PanelLeftOpen className="w-4 h-4 hidden group-hover:block" />
-            </>
-          )}
-        </button>
-        <div className="w-px h-4 bg-[var(--border-main)] mx-0.5" aria-hidden="true" />
+      <div className="flex items-center gap-1 px-2 flex-1 min-w-0">
         <button
           onClick={onToggleSearch}
           disabled={!hasFolder}
@@ -71,11 +41,8 @@ export default function TopBar({
         >
           <Search className="w-4 h-4" />
         </button>
-
       </div>
       <div className="flex items-center h-full pr-1">
-        <ExportMenu onSelect={onExportSelect} disabled={!activeFile} />
-        <div className="w-px h-4 bg-[var(--border-main)] mx-1" aria-hidden="true" />
         <ThemeMenu />
       </div>
     </div>

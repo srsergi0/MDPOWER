@@ -4,6 +4,86 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 13:35] — Integración del Botón de Sidebar Fijo en la Fila de Pestañas (`TabBar`)
+- **Tipo de cambio**: [Modificación | Refactor]
+- **Archivos modificados**:
+  - `src/mainview/components/TabBar.tsx` (añadido botón de alternancia del sidebar fijo a la izquierda con `flex-shrink-0` y `border-r`, desacoplado del scroll horizontal de las pestañas; visualización permanente de la barra)
+  - `src/mainview/components/TopBar.tsx` (removido el botón del sidebar de la barra superior para evitar duplicidad, dejando únicamente la búsqueda y el selector de temas)
+  - `src/mainview/App.tsx` (conectado `handleToggleSidebar` y `sidebarOpen` directamente a `TabBar`, renderizado persistente de `TabBar`)
+- **Descripción**:
+  - A solicitud del usuario, el botón de alternar el panel lateral (`Sidebar`) se integró en la misma fila horizontal de las pestañas (`TabBar`).
+  - El botón permanece fijo en el extremo izquierdo (`flex-shrink-0`) separado por un borde sutil (`border-r`), mientras que la lista de pestañas hace scroll horizontal libremente a su derecha sin desplazar el botón.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - `bun run vite build` compilado con éxito (código de salida 0).
+
+### [2026-09-08 13:30] — Eliminación de Raíz de las Funcionalidades de Exportación a PDF, HTML e Impresión
+- **Tipo de cambio**: [Eliminación de raíz]
+- **Archivos modificados**:
+  - `src/mainview/components/ExportMenu.tsx` (eliminado de raíz)
+  - `src/mainview/components/SettingsModal.tsx` (eliminado de raíz)
+  - `src/mainview/components/Modal.tsx` (eliminado de raíz)
+  - `src/mainview/utils/print.ts` (eliminado de raíz)
+  - `src/shared/buildPrintHTML.ts` (eliminado de raíz)
+  - `src/bun/findChromium.ts` (eliminado de raíz)
+  - `scripts/batch-pdf.ts` (eliminado de raíz)
+  - `src/shared/types.ts` (eliminados endpoints RPC `savePdf`, `getPrintHtml` y `saveHtml`)
+  - `src/bun/index.ts` (eliminados manejadores y llamadas a `buildPrintHTML`, `findChromiumPath`, `savePdf`, `getPrintHtml`, `saveHtml`)
+  - `src/mainview/components/TopBar.tsx` (eliminado `ExportMenu`, props y botones de exportación)
+  - `src/mainview/App.tsx` (eliminados estados `settingsOpen`/`settingsMode`, callbacks `handlePrint`/`handleSavePdf`/`handleSaveHtml`/`handleOpenSettings` y modal `SettingsModal`)
+  - `electrobun.config.ts` (eliminada anulación de versión de Bun, restaurando el runtime nativo y estable de Electrobun)
+  - `FEATURES.md` (módulo 7 marcado como quitado de raíz)
+- **Descripción**:
+  - Siguiendo la directriz del usuario de enfocar MDPOWER estrictamente como un visor ultra-rápido de Markdown local, se eliminó de forma limpia y definitiva todo el código, componentes visuales, tipos RPC, scripts CLI y lógica de control de navegadores headless vinculados a la exportación a PDF, exportación a HTML e impresión.
+  - Al no requerirse `Bun.WebView` headless, se eliminó la necesidad de buscar ejecutables Chromium externos y se restauró la versión de Bun compatible con las llamadas FFI internas de Electrobun (`1.3.13`), eliminando cualquier error de tipo CString/ptr.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - `bun run vite build` compilado con éxito (código de salida 0), reduciendo el tamaño del bundle principal en 10 kB adicionales.
+  - Eliminados 7 archivos obsoletos del proyecto.
+
+### [2026-09-08 13:19] — Actualización de Runtime Bun a v1.4.2 en Electrobun para Soporte Nativo de `Bun.WebView` en Windows
+- **Tipo de cambio**: [Corrección | Configuración]
+- **Archivos modificados**:
+  - `electrobun.config.ts` (configurado `build.bunVersion: "1.4.2"`)
+  - `build/dev-win-x64/MDPOWER-dev/bin/bun.exe` (actualizado el binario empaquetado de la aplicación a v1.4.2)
+  - `node_modules/.electrobun-cache/bun-override/win-x64/` (cacheador de Bun para Electrobun con v1.4.2)
+- **Descripción**:
+  - Se identificó la causa raíz del error `code: "ERR_DLOPEN_FAILED"` al instanciar `new Bun.WebView(...)`: Electrobun utilizaba por defecto la versión antigua de Bun `1.3.13`, la cual presentaba un fallo interno en Windows en el soporte CDP de `Bun.WebView`.
+  - La versión actual de Bun (`1.4.2`) resuelve íntegramente este problema y permite invocar `Bun.WebView` de forma limpia y aislada.
+  - Se configuró `bunVersion: "1.4.2"` en `electrobun.config.ts` y se aprovisionó la versión para la aplicación en ejecución.
+- **Resultado / Verificación**:
+  - Comprobación directa sobre `build/dev-win-x64/MDPOWER-dev/bin/bun.exe` ejecutando `new Bun.WebView({ backend: { type: "chrome", path, url: false } })` completada con éxito y código de salida 0.
+
+### [2026-09-08 13:12] — Detección Automática de Rutas Chromium (Chrome / Edge / Brave) para `Bun.WebView`
+- **Tipo de cambio**: [Corrección]
+- **Archivos modificados**:
+  - `src/bun/findChromium.ts` (módulo de búsqueda multiplataforma para ejecutables de Google Chrome, Microsoft Edge y Brave Browser; asignación automática de `process.env.BUN_CHROME_PATH`)
+  - `src/bun/index.ts` (inicialización de `findChromiumPath()` en arranque y paso explícito de `backend.path` en `new Bun.WebView(...)` dentro de `savePdf`)
+  - `scripts/batch-pdf.ts` (paso explícito de `backend.path` para el script de conversión en lote)
+- **Descripción**:
+  - Se solucionó el error `Failed to spawn Chrome (set BUN_CHROME_PATH, backend.path, or install Chrome/Chromium)` (código `ERR_DLOPEN_FAILED`). En entornos empaquetados por Electrobun en Windows, las rutas estándar de `Program Files` no siempre están presentes en `PATH`, impidiendo a Bun localizar el ejecutable por defecto.
+  - La nueva utilidad localiza automáticamente el ejecutable instalado (Chrome, Edge o Brave) y suministra la ruta directa a `Bun.WebView`, garantizando el inicio del navegador sin requerir configuración manual del usuario.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - Verificada la instanciación de `Bun.WebView` con `backend.path` tanto en Chrome como en Edge.
+
+### [2026-09-08 13:08] — Resolución de Error 1006 en Chrome WebSocket y Desacoplamiento de Print en Frontend
+- **Tipo de cambio**: [Corrección | Refactor]
+- **Archivos modificados**:
+  - `src/bun/index.ts` (configurado `Bun.WebView` con `backend: { type: "chrome", url: false }` y navegación por `file:///`, limpieza en bloque `finally`, añadida verificación de existencia para evitar `ENOENT` y creado manejador RPC `getPrintHtml`)
+  - `src/shared/types.ts` (añadida definición de RPC `getPrintHtml`)
+  - `src/mainview/utils/print.ts` (reemplazado `printMarkdown` por `printHtml`, desacoplando completamente el frontend de la API de Bun y evitando errores de `undefined.markdown` en navegador)
+  - `src/mainview/App.tsx` (conectado `handlePrint` al RPC `getPrintHtml`, depuración de pestañas con archivos eliminados en `initRestoredSession`)
+- **Descripción**:
+  - Se corrigió el error `Chrome WebSocket closed (code 1006)` al generar PDF especificando `{ backend: { type: "chrome", url: false } }` y escribiendo el documento HTML en un archivo temporal (`file:///...`). Esto evita que Bun intente conectarse al puerto de depuración DevTools existente de la ventana principal de Electrobun (WebView2) o que falle por límites de longitud en URLs `data:`.
+  - Se garantizó la liberación inmediata de recursos del proceso Chrome headless mediante `try ... finally { view?.close(); unlink(tmp); }`.
+  - Se solucionó el riesgo de fallo en la función de impresión del navegador (`window.print`) trasladando la renderización de Markdown hacia el backend Bun mediante el endpoint RPC `getPrintHtml`.
+  - Se eliminaron los errores no capturados `ENOENT` producidos al restaurar pestañas de archivos que ya no existen en disco (ej. `guion.md`).
+- **Resultado / Verificación**:
+  - Prueba de exportación ejecutada sobre `FEATURES.md` produciendo con éxito un archivo PDF de 1,683,776 bytes.
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - `bun run vite build` compilado con éxito (código de salida 0).
+
 ### [2026-09-08 12:53] — Eliminación de Raíz de Puppeteer y Migración a Generación Nativa de PDF con `Bun.WebView` (CDP)
 - **Tipo de cambio**: [Eliminación de raíz | Refactor]
 - **Archivos modificados**:
