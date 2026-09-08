@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef, createContext, useContext, us
 import { Electroview } from "electrobun/view";
 import type { MarkdownReaderRPC, FileEntry } from "../shared/types";
 import MarkdownViewer from "./components/MarkdownViewer";
-import TopBar from "./components/TopBar";
 import TabBar, { type Tab } from "./components/TabBar";
 import Sidebar from "./components/Sidebar";
 import Toast from "./components/Toast";
@@ -686,9 +685,8 @@ function App() {
 
   return (
     <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
-      <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition">
-        <TopBar />
-        <div className="flex-1 flex min-h-0">
+      <div className="h-full w-full flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition overflow-hidden">
+        <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
           <Sidebar
             open={sidebarOpen && hasFolder}
             files={sidebarFiles}
@@ -696,7 +694,7 @@ function App() {
             onSelectFile={handleSelectSidebarFile}
           />
           <div
-            className="flex-1 flex flex-col min-w-0 relative"
+            className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative"
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
@@ -720,7 +718,7 @@ function App() {
               sidebarOpen={sidebarOpen}
               onToggleSidebar={handleToggleSidebar}
             />
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 overflow-hidden min-w-0">
               <MarkdownViewer
                 content={activeContent}
                 html={activeHtml}

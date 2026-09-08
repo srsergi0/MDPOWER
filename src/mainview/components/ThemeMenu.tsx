@@ -90,7 +90,7 @@ export default function ThemeMenu() {
         aria-label="Select theme"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="p-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-blue-500 active:scale-95 text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
+        className="p-1.5 rounded-md transition-colors active:scale-95 flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]"
       >
         {activeTheme.isDark ? (
           <Moon className="w-4 h-4 text-[var(--accent-blue)]" />
@@ -103,7 +103,7 @@ export default function ThemeMenu() {
         <div
           role="menu"
           aria-label="Theme selector"
-          className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-sidebar)] border border-[var(--border-main)] rounded-xl shadow-xl z-50 py-1.5 flex flex-col gap-0.5"
+          className="absolute right-0 top-full mt-1.5 w-56 max-h-[calc(100vh-50px)] overflow-y-auto custom-scrollbar bg-[var(--bg-sidebar)] border border-[var(--border-main)] rounded-xl shadow-xl z-50 py-1.5 flex flex-col gap-0.5"
           onKeyDown={handleKeyDown}
         >
           <div className="px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">

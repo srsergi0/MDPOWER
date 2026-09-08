@@ -133,7 +133,7 @@ export default function MarkdownViewer({ content, html, onOpenLink }: Props) {
       {/* Main content scroll area */}
       <div
         ref={scrollContainerRef}
-        className="h-full overflow-y-auto px-8 py-8 relative custom-scrollbar scroll-smooth"
+        className="h-full overflow-y-auto overflow-x-auto px-8 py-8 relative custom-scrollbar scroll-smooth"
         id="markdown-content-scroll"
         onClick={handleContainerClick}
       >

@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { File, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import ThemeMenu from "./ThemeMenu";
 
 export type Tab = {
   id: string;
@@ -86,12 +87,8 @@ export default function TabBar({
     setDragIndex(null);
   }, []);
 
-  if (tabs.length === 0 && !hasFolder) {
-    return null;
-  }
-
   return (
-    <div className="flex items-stretch bg-[var(--bg-sidebar)] border-b border-[var(--border-main)] h-[35px] select-none">
+    <div className="flex items-stretch bg-[var(--bg-sidebar)] border-b border-[var(--border-main)] h-[35px] select-none w-full min-w-0 pr-2">
       {/* Botón de sidebar fijo a la izquierda (solo si hay carpeta abierta) */}
       {hasFolder && (
         <div className="flex-shrink-0 flex items-center px-1 border-r border-[var(--border-main)]">
@@ -119,7 +116,7 @@ export default function TabBar({
         ref={tabListRef}
         role="tablist"
         aria-label="Open files"
-        className="flex-1 flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex-1 flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0"
       >
         {tabs.map((tab, index) => {
           const isActive = tab.id === activeTabId;
@@ -160,6 +157,12 @@ export default function TabBar({
           );
         })}
       </div>
+
+      {/* Selector de tema a la derecha */}
+      <div className="flex-shrink-0 flex items-center px-1.5 border-l border-[var(--border-main)]">
+        <ThemeMenu />
+      </div>
     </div>
   );
 }
+

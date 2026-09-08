@@ -4,6 +4,47 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 14:30] — Corrección del Corte del Botón de Luna por Unidades de Viewport y Margen de Ventana
+- **Tipo de cambio**: [Corrección]
+- **Archivos modificados**:
+  - `src/mainview/App.tsx` (reemplazadas unidades de viewport `w-screen h-screen` por `w-full h-full`, y eliminadas declaraciones `w-full` en flex-items hijos que causaban que la ventana de Chromium/WebView2 midiera más allá del área cliente en Windows por los bordes de redimensión; agregado `min-w-0 min-h-0` para contención estricta)
+  - `src/mainview/components/TabBar.tsx` (añadido `pr-2` en el contenedor horizontal de la barra de pestañas para garantizar un margen de 8px respecto al borde derecho de la ventana de Windows 11, evitando que el botón de la luna quede cortado)
+- **Descripción**:
+  - En Windows 11, el uso de `100vw` (`w-screen`) calcula el ancho incluyendo los bordes invisibles de redimensión de la ventana (~16px), lo que empujaba la mitad derecha del botón de la luna fuera de los límites visibles de la ventana.
+  - Al cambiar a `w-full h-full` y añadir `pr-2` en la barra de pestañas, el botón de la luna queda completamente contenido y visible con un margen armónico desde el borde de la ventana.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
+### [2026-09-08 14:25] — Corrección de Desbordamiento y Enclaustramiento de la Barra de Pestañas (`TabBar`) y Menú de Tema
+- **Tipo de cambio**: [Corrección | Refactor]
+- **Archivos modificados**:
+  - `src/mainview/index.css` (establecidas reglas base para `html, body, #root`: `margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;` evitando barras de scroll fantasma a nivel de ventana)
+  - `src/mainview/App.tsx` (enclaustrado estricto con `w-screen overflow-hidden` en el contenedor raíz, `w-full overflow-hidden` en el flex principal y el contenedor derecho, asegurando que ningún componente empuje la barra de pestañas fuera de la pantalla)
+  - `src/mainview/components/TabBar.tsx` (añadidas clases `w-full max-w-full` y ajustado el padding del contenedor del botón de tema a `px-1.5` para garantizar márgenes visuales limpios en el extremo derecho)
+  - `src/mainview/components/ThemeMenu.tsx` (agregado `max-h-[calc(100vh-50px)] overflow-y-auto custom-scrollbar` al menú desplegable para que la lista de temas nunca sobrepase la parte inferior de la ventana)
+  - `src/mainview/components/MarkdownViewer.tsx` (añadido `overflow-x-auto` en el contenedor de lectura para que tablas o bloques de código anchos no expandan el ancho del layout)
+- **Descripción**:
+  - Se corrigió el error donde el botón del selector de tema parecía sobrepasar los límites de la pantalla ("como que sobrepasa de la pantalla").
+  - El problema se debía a la ausencia de límites estrictos de desbordamiento horizontal en el layout derecho y la falta de scroll horizontal interno en el visor de Markdown, lo que empujaba el extremo derecho de `TabBar` más allá del borde de la ventana.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
+### [2026-09-08 14:15] — Reubicación de la Luna (Selector de Temas) a la Barra de Pestañas (`TabBar`)
+- **Tipo de cambio**: [Modificación | Refactor]
+- **Archivos modificados**:
+  - `src/mainview/components/TabBar.tsx` (integrado `ThemeMenu` en el extremo derecho con `border-l` y `flex-shrink-0`, garantizando scroll horizontal para las pestañas con `min-w-0`)
+  - `src/mainview/components/ThemeMenu.tsx` (ajustado estilo del botón disparador a `p-1.5 rounded-md` para alinearse armónicamente con la altura de 35px de `TabBar`)
+  - `src/mainview/App.tsx` (removido el renderizado de `<TopBar />` en el JSX del layout principal)
+- **Descripción**:
+  - A solicitud del usuario ("solo tienes que mover la luna a la barra correcta"), se reubicó el botón de selección de tema (la luna/sol) a la barra de pestañas (`TabBar`), colocándolo en el extremo derecho opuesto a las pestañas y al botón del explorador.
+  - Se eliminó la invocación de `<TopBar />` en `App.tsx` para no ocupar espacio vertical innecesario.
+  - Se preservó el archivo `src/mainview/components/TopBar.tsx` intacto en el repositorio para evitar eliminaciones no deseadas.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores de tipado (código 0).
+  - `bun run vite build` compilado exitosamente para producción (código 0).
+
 ### [2026-09-08 13:58] — Eliminación de Raíz del Buscador Global (`SearchPanel` y `SearchIndexer`)
 - **Tipo de cambio**: [Eliminación de raíz]
 - **Archivos modificados**:
