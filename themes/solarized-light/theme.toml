@@ -1,0 +1,58 @@
+# Solarized Light — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "solarized-light"
+name = "Solarized Light"
+mode = "light"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#fdf6e3"
+foreground = "#586e75"
+accent = "#268bd2"
+muted = "#93a1a1"
+darker_background = "#eee8d5"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#fdf6e3"
+bg-sidebar = "#eee8d5"
+bg-header = "#eee8d5"
+text-main = "#586e75"
+text-muted = "#93a1a1"
+border-main = "#dfd8c2"
+accent-blue = "#268bd2"
+accent-hover = "rgba(38, 139, 210, 0.08)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "800"
+color = "{foreground}"
+border-bottom = "2px solid {accent}"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

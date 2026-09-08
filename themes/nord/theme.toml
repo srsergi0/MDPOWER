@@ -1,0 +1,58 @@
+# Nord — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "nord"
+name = "Nord"
+mode = "dark"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#2e3440"
+foreground = "#d8dee9"
+accent = "#88c0d0"
+muted = "#81a1c1"
+darker_background = "#242933"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#2e3440"
+bg-sidebar = "#242933"
+bg-header = "#1c2028"
+text-main = "#d8dee9"
+text-muted = "#81a1c1"
+border-main = "#3b4252"
+accent-blue = "#88c0d0"
+accent-hover = "rgba(136, 192, 208, 0.15)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "700"
+color = "{foreground}"
+align = "center"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

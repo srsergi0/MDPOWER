@@ -4,6 +4,24 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 16:35] — Motor de temas TOML comunitario estilo Omarchy + VSCode
+- **Tipo de cambio**: [Nueva Característica | Refactor]
+- **Archivos modificados**:
+  - `themes/*/theme.toml` (16 temas nuevos)
+  - `themes/COMO-CREAR-TEMA.md` (nuevo)
+  - `src/bun/themes.ts` (nuevo)
+  - `src/bun/index.ts`
+  - `src/shared/types.ts`
+  - `src/mainview/App.tsx`
+  - `src/mainview/components/ThemeMenu.tsx`
+  - `FEATURES.md`
+- **Descripción**:
+  - Temas hardcodeados migrados a carpetas `themes/<id>/theme.toml` con 3 capas: `[meta]`, `[colors]` (paleta única estilo Omarchy), `[ui]` (workbench estilo VSCode con placeholders y derivación automática) y `[markdown.h1/h2/...]` (controla cómo renderiza `#TÍTULO`, tamaño, peso, `prefix`, bordes).
+  - Loader `src/bun/themes.ts` con `Bun.TOML` nativo (cero deps), override de usuario en `%APPDATA%/MDPOWER/themes`, instalación por `git clone --depth 1` con sanitización de nombre y purga de ejecutables, watcher con debounce que emite `themesChanged`.
+  - Frontend dinámico: `ThemeContext` con lista RPC + fallback offline, CSS inyectado en `<style id="mdpower-themes">`, `ThemeMenu` con instalar-desde-URL. `index.css` queda como fallback.
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` limpio, `bunx vite build` OK, smoke test `listThemes()` devuelve 16 temas y CSS de 12KB generado correctamente.
+
 ### [2026-09-08 16:20] — Soporte robusto de enlaces md en nueva pestaña + externos y anclas
 - **Tipo de cambio**: [Nueva Característica | Modificación]
 - **Archivos modificados**:

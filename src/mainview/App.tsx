@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, createContext, useContext, useMemo } from "react";
 import { Electroview } from "electrobun/view";
-import type { MarkdownReaderRPC, FileEntry } from "../shared/types";
+import type { MarkdownReaderRPC, FileEntry, ThemeSummary } from "../shared/types";
 import MarkdownViewer from "./components/MarkdownViewer";
 import TabBar, { type Tab } from "./components/TabBar";
 import Sidebar from "./components/Sidebar";
@@ -10,29 +10,45 @@ import { Upload } from "lucide-react";
 
 declare const __APP_VERSION__: string;
 
-export type ThemeId =
-  | "github-light"
-  | "one-light"
-  | "solarized-light"
-  | "one-dark"
-  | "dracula"
-  | "github-dark"
-  | "nord"
-  | "tokyo-night"
-  | "gruvbox-dark"
-  | "rose-pine"
-  | "synthwave84"
-  | "night-owl"
-  | "ayu-light"
-  | "gruvbox-light"
-  | "everforest-light"
-  | "rose-pine-dawn";
+export type ThemeId = string;
+
+export type ThemeItem = {
+  id: string;
+  label: string;
+  isDark: boolean;
+  editorColor: string;
+  sidebarColor: string;
+};
+
+export const FALLBACK_THEMES: ThemeItem[] = [
+  { id: "github-light", label: "GitHub Light", isDark: false, editorColor: "#ffffff", sidebarColor: "#f6f8fa" },
+  { id: "one-light", label: "One Light", isDark: false, editorColor: "#fafafa", sidebarColor: "#f0f0f0" },
+  { id: "solarized-light", label: "Solarized Light", isDark: false, editorColor: "#fdf6e3", sidebarColor: "#eee8d5" },
+  { id: "ayu-light", label: "Ayu Light", isDark: false, editorColor: "#fdfdfd", sidebarColor: "#f8f9fa" },
+  { id: "gruvbox-light", label: "Gruvbox Light", isDark: false, editorColor: "#fbf1c7", sidebarColor: "#f2e5bc" },
+  { id: "everforest-light", label: "Everforest Light", isDark: false, editorColor: "#fdf6e3", sidebarColor: "#f3ecc8" },
+  { id: "rose-pine-dawn", label: "Rosé Pine Dawn", isDark: false, editorColor: "#faf4ed", sidebarColor: "#f2e9e1" },
+  { id: "one-dark", label: "One Dark Pro", isDark: true, editorColor: "#282c34", sidebarColor: "#21252b" },
+  { id: "dracula", label: "Dracula", isDark: true, editorColor: "#282a36", sidebarColor: "#191a21" },
+  { id: "github-dark", label: "GitHub Dark", isDark: true, editorColor: "#0d1117", sidebarColor: "#161b22" },
+  { id: "nord", label: "Nord", isDark: true, editorColor: "#2e3440", sidebarColor: "#242933" },
+  { id: "tokyo-night", label: "Tokyo Night", isDark: true, editorColor: "#1a1b26", sidebarColor: "#16161e" },
+  { id: "gruvbox-dark", label: "Gruvbox Dark", isDark: true, editorColor: "#282828", sidebarColor: "#1d2021" },
+  { id: "rose-pine", label: "Rosé Pine", isDark: true, editorColor: "#191724", sidebarColor: "#1f1d2e" },
+  { id: "synthwave84", label: "SynthWave '84", isDark: true, editorColor: "#2b213a", sidebarColor: "#241b2f" },
+  { id: "night-owl", label: "Night Owl", isDark: true, editorColor: "#011627", sidebarColor: "#010e1a" },
+];
+
+const FALLBACK_DARK_IDS = new Set(FALLBACK_THEMES.filter((t) => t.isDark).map((t) => t.id));
 
 type ThemeContextType = {
   theme: "light" | "dark";
   themeId: ThemeId;
   setThemeId: (id: ThemeId) => void;
   toggleTheme: () => void;
+  themes: ThemeItem[];
+  refreshThemes: () => void;
+  installThemeUrl: (url: string) => Promise<{ ok: boolean; error?: string }>;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -40,6 +56,9 @@ const ThemeContext = createContext<ThemeContextType>({
   themeId: "one-dark",
   setThemeId: () => {},
   toggleTheme: () => {},
+  themes: FALLBACK_THEMES,
+  refreshThemes: () => {},
+  installThemeUrl: async () => ({ ok: false, error: "RPC no disponible" }),
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -76,6 +95,7 @@ function App() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string } | null>(null);
+  const [themes, setThemes] = useState<ThemeItem[]>(FALLBACK_THEMES);
   const electroviewRef = useRef<any>(null);
   const activeTabRef = useRef<string | null>(null);
   const dragCounterRef = useRef(0);
@@ -90,33 +110,69 @@ function App() {
   const hasFolder = !!currentFolderPath;
   const sidebarFiles = currentFolderPath ? folderTrees[currentFolderPath] || [] : [];
 
-  const darkThemes = useMemo<ThemeId[]>(() => [
-    "one-dark",
-    "dracula",
-    "github-dark",
-    "nord",
-    "tokyo-night",
-    "gruvbox-dark",
-    "rose-pine",
-    "synthwave84",
-    "night-owl",
-  ], []);
-  const isDark = darkThemes.includes(themeId);
+  const isDark = useMemo(() => {
+    const found = themes.find((t) => t.id === themeId);
+    if (found) return found.isDark;
+    return FALLBACK_DARK_IDS.has(themeId);
+  }, [themes, themeId]);
   const theme = isDark ? "dark" : "light";
 
+  const refreshThemes = useCallback(() => {
+    const view = electroviewRef.current;
+    if (!view) return;
+    view.proxy.request.listThemes({}).then((res: { themes: ThemeSummary[] }) => {
+      if (res?.themes && res.themes.length > 0) {
+        setThemes(res.themes.map((t) => ({
+          id: t.id,
+          label: `${t.name}${t.source === "user" ? " ●" : ""}`,
+          isDark: t.mode === "dark",
+          editorColor: t.editorColor,
+          sidebarColor: t.sidebarColor,
+        })));
+      }
+    }).catch(() => {});
+    view.proxy.request.getThemesCSS({}).then((res: { css: string }) => {
+      if (res?.css) {
+        let style = document.getElementById("mdpower-themes") as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement("style");
+          style.id = "mdpower-themes";
+          document.head.appendChild(style);
+        }
+        style.textContent = res.css;
+      }
+    }).catch(() => {});
+  }, []);
+
   const toggleTheme = useCallback(() => {
-    setThemeId((prev) => {
-      const currentIsDark = darkThemes.includes(prev);
-      const next = currentIsDark ? "github-light" : "one-dark";
-      localStorage.setItem("md-reader-theme-id", next);
-      return next;
-    });
-  }, [darkThemes]);
+    const currentIsDark = themes.find((t) => t.id === themeId)?.isDark ?? FALLBACK_DARK_IDS.has(themeId);
+    const fallback = themes.find((t) => t.isDark !== currentIsDark);
+    const next = fallback ? fallback.id : currentIsDark ? "github-light" : "one-dark";
+    setThemeId(next);
+    localStorage.setItem("md-reader-theme-id", next);
+  }, [themes, themeId]);
 
   const handleSetThemeId = useCallback((id: ThemeId) => {
     setThemeId(id);
     localStorage.setItem("md-reader-theme-id", id);
   }, []);
+
+  const installThemeUrl = useCallback(async (url: string) => {
+    const view = electroviewRef.current;
+    if (!view) return { ok: false, error: "RPC no disponible" };
+    try {
+      const res = await view.proxy.request.installTheme({ url });
+      if (res && (res as { success: boolean }).success) {
+        refreshThemes();
+        const id = (res as { id?: string }).id;
+        if (id) handleSetThemeId(id);
+        return { ok: true };
+      }
+      return { ok: false, error: (res as { error?: string })?.error || "Instalación fallida" };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }, [refreshThemes, handleSetThemeId]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -206,6 +262,28 @@ function App() {
           folderChanged: ({ files }) => {
             if (watchedFolderRef.current) {
               setFolderTrees((prev) => ({ ...prev, [watchedFolderRef.current!]: files }));
+            }
+          },
+          themesChanged: ({ themes: incoming }) => {
+            if (incoming && incoming.length > 0) {
+              setThemes(incoming.map((t) => ({
+                id: t.id,
+                label: `${t.name}${t.source === "user" ? " ●" : ""}`,
+                isDark: t.mode === "dark",
+                editorColor: t.editorColor,
+                sidebarColor: t.sidebarColor,
+              })));
+              electroviewRef.current?.proxy.request.getThemesCSS({}).then((res: { css: string }) => {
+                if (res?.css) {
+                  let style = document.getElementById("mdpower-themes") as HTMLStyleElement | null;
+                  if (!style) {
+                    style = document.createElement("style");
+                    style.id = "mdpower-themes";
+                    document.head.appendChild(style);
+                  }
+                  style.textContent = res.css;
+                }
+              }).catch(() => {});
             }
           },
         },
@@ -313,6 +391,29 @@ function App() {
 
     initRestoredSession();
     checkForUpdates();
+
+    rpc.proxy.request.listThemes({}).then((res: { themes: ThemeSummary[] }) => {
+      if (res?.themes && res.themes.length > 0) {
+        setThemes(res.themes.map((t) => ({
+          id: t.id,
+          label: `${t.name}${t.source === "user" ? " ●" : ""}`,
+          isDark: t.mode === "dark",
+          editorColor: t.editorColor,
+          sidebarColor: t.sidebarColor,
+        })));
+      }
+    }).catch(() => {});
+    rpc.proxy.request.getThemesCSS({}).then((res: { css: string }) => {
+      if (res?.css) {
+        let style = document.getElementById("mdpower-themes") as HTMLStyleElement | null;
+        if (!style) {
+          style = document.createElement("style");
+          style.id = "mdpower-themes";
+          document.head.appendChild(style);
+        }
+        style.textContent = res.css;
+      }
+    }).catch(() => {});
 
     return () => {
       rpc.proxy.request.stopWatchingFolder({}).catch(() => {});
@@ -725,7 +826,7 @@ function App() {
   }, [hasFolder]);
 
   return (
-    <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme, themes, refreshThemes, installThemeUrl }}>
       <div className="h-full w-full flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition overflow-hidden">
         <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
           <Sidebar

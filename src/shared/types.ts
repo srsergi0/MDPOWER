@@ -6,6 +6,16 @@ export type FileEntry = {
   content?: string;
 };
 
+export type ThemeSummary = {
+  id: string;
+  name: string;
+  mode: "light" | "dark";
+  editorColor: string;
+  sidebarColor: string;
+  source: "bundled" | "user";
+  hasPreview: boolean;
+};
+
 export type MarkdownReaderRPC = {
   bun: {
     requests: {
@@ -53,6 +63,26 @@ export type MarkdownReaderRPC = {
         params: { url: string };
         response: { success: boolean };
       };
+      listThemes: {
+        params: {};
+        response: { themes: ThemeSummary[] };
+      };
+      getThemesCSS: {
+        params: {};
+        response: { css: string };
+      };
+      installTheme: {
+        params: { url: string };
+        response: { success: true; id: string } | { success: false; error: string };
+      };
+      installThemeFromPath: {
+        params: { path: string };
+        response: { success: true; id: string } | { success: false; error: string };
+      };
+      getThemesDir: {
+        params: {};
+        response: { bundled: string; user: string };
+      };
     };
     messages: {
       log: { msg: string };
@@ -64,6 +94,7 @@ export type MarkdownReaderRPC = {
       initialFile: { path: string; content: string; html: string; filename: string };
       fileChanged: { path: string; content: string; html: string };
       folderChanged: { files: FileEntry[] };
+      themesChanged: { themes: ThemeSummary[] };
     };
   };
 };

@@ -1,0 +1,58 @@
+# Ayu Light — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "ayu-light"
+name = "Ayu Light"
+mode = "light"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#fdfdfd"
+foreground = "#5c6773"
+accent = "#ff9940"
+muted = "#abb2bf"
+darker_background = "#f8f9fa"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#fdfdfd"
+bg-sidebar = "#f8f9fa"
+bg-header = "#f0f1f2"
+text-main = "#5c6773"
+text-muted = "#abb2bf"
+border-main = "#e6e8ea"
+accent-blue = "#ff9940"
+accent-hover = "rgba(255, 153, 64, 0.08)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "800"
+color = "{foreground}"
+border-bottom = "2px solid {accent}"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

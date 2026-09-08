@@ -1,0 +1,58 @@
+# Gruvbox Light — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "gruvbox-light"
+name = "Gruvbox Light"
+mode = "light"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#fbf1c7"
+foreground = "#3c3836"
+accent = "#af3a03"
+muted = "#7c6f64"
+darker_background = "#f2e5bc"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#fbf1c7"
+bg-sidebar = "#f2e5bc"
+bg-header = "#ebdbb2"
+text-main = "#3c3836"
+text-muted = "#7c6f64"
+border-main = "#d5c4a1"
+accent-blue = "#af3a03"
+accent-hover = "rgba(175, 58, 3, 0.08)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "800"
+color = "{foreground}"
+border-bottom = "2px solid {accent}"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

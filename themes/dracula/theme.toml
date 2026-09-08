@@ -1,0 +1,58 @@
+# Dracula — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "dracula"
+name = "Dracula"
+mode = "dark"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#282a36"
+foreground = "#f8f8f2"
+accent = "#bd93f9"
+muted = "#6272a4"
+darker_background = "#191a21"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#282a36"
+bg-sidebar = "#191a21"
+bg-header = "#21222c"
+text-main = "#f8f8f2"
+text-muted = "#6272a4"
+border-main = "#191a21"
+accent-blue = "#bd93f9"
+accent-hover = "rgba(189, 147, 249, 0.15)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2.1em"
+weight = "800"
+color = "{accent}"
+prefix = "# "
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

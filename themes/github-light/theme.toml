@@ -1,0 +1,58 @@
+# GitHub Light — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "github-light"
+name = "GitHub Light"
+mode = "light"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#ffffff"
+foreground = "#24292f"
+accent = "#0969da"
+muted = "#57606a"
+darker_background = "#f6f8fa"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#ffffff"
+bg-sidebar = "#f6f8fa"
+bg-header = "#f3f4f6"
+text-main = "#24292f"
+text-muted = "#57606a"
+border-main = "#d0d7de"
+accent-blue = "#0969da"
+accent-hover = "rgba(9, 105, 218, 0.08)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "800"
+color = "{foreground}"
+border-bottom = "2px solid {accent}"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

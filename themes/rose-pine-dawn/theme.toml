@@ -1,0 +1,58 @@
+# Rosé Pine Dawn — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "rose-pine-dawn"
+name = "Rosé Pine Dawn"
+mode = "light"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#faf4ed"
+foreground = "#575279"
+accent = "#d7827e"
+muted = "#9893a5"
+darker_background = "#f2e9e1"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#faf4ed"
+bg-sidebar = "#f2e9e1"
+bg-header = "#e8decf"
+text-main = "#575279"
+text-muted = "#9893a5"
+border-main = "#dfd5c6"
+accent-blue = "#d7827e"
+accent-hover = "rgba(215, 130, 126, 0.08)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2em"
+weight = "800"
+color = "{foreground}"
+border-bottom = "2px solid {accent}"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"

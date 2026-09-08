@@ -147,25 +147,28 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
 
 ---
 
-## 8. 🎨 Motor de Temas y Personalización Visual
+## 8. 🎨 Motor de Temas y Personalización Visual — [TOML COMUNITARIO]
 
 - **Descripción**:
-  - Menú desplegable en el TopBar (`ThemeMenu`) con vista previa circular de colores.
-  - 16 temas predeterminados:
-    - **Claros (7)**: GitHub Light, One Light, Solarized Light, Ayu Light, Gruvbox Light, Everforest Light, Rosé Pine Dawn.
-    - **Oscuros (9)**: One Dark Pro, Dracula, GitHub Dark, Nord, Tokyo Night, Gruvbox Dark, Rosé Pine, SynthWave '84, Night Owl.
-  - Botón de alternancia rápida entre claro y oscuro (Sol / Luna).
-  - Persistencia de la selección en `localStorage` (`md-reader-theme-id`).
-  - Variables CSS completas aplicadas dinámicamente en el elemento raíz HTML (`--bg-editor`, `--bg-sidebar`, `--accent-blue`, etc.).
+  - Sistema de temas estilo Omarchy + VSCode: cada tema es una carpeta en `themes/<id>/theme.toml` (TOML declarativo con comentarios, parseado con `Bun.TOML` nativo, cero dependencias).
+  - Separación en 3 capas: `[meta]` (id/nombre/mode/author), `[colors]` (paleta base única estilo Omarchy), `[ui]` (colores workbench estilo VSCode con placeholders `{background}/{accent}` y derivación automática si falta clave), `[markdown.h1/h2/h3/code/blockquote/a/...]` (cómo renderiza `#TÍTULO`, `##SUBTÍTULO`, código, citas — tamaño, peso, alineación, `prefix`, bordes, radius, itálica).
+  - 16 temas incluidos migrados a TOML (7 claros + 9 oscuros). El CSS de `index.css` queda como fallback offline; el backend genera el CSS real (`getAllThemesCSS`) y el frontend lo inyecta en `<style id="mdpower-themes">`.
+  - Instalación comunitaria: copiar carpeta a `%APPDATA%/MDPOWER/themes/` (override a incluidos) o `installTheme {url https}` (git clone `--depth 1`, nombre sanitizado `^[a-z0-9_][a-z0-9._+\-]*$`, se purgan `.lua/.js/.sh/.ps1/.exe` por seguridad — un tema cambia lo visual, nunca lo que ejecuta).
+  - Hot-reload: watcher con debounce 400ms emite `themesChanged`; `ThemeMenu` dinámico con grupos claro/oscuro, “●” marca temas de usuario y botón de instalar desde URL.
+  - Guía de comunidad: `themes/COMO-CREAR-TEMA.md`.
 - **Archivos involucrados**:
-  - `src/mainview/components/ThemeMenu.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\ThemeMenu.tsx`)
-  - `src/mainview/index.css` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\index.css`)
-  - `src/mainview/App.tsx` (`ThemeContext`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\App.tsx`)
+  - `themes/*/theme.toml` + `themes/COMO-CREAR-TEMA.md`
+  - `src/bun/themes.ts` (loader, validador, `buildThemeCSS`, `installThemeFromUrl/FromPath`, `sanitizeThemeDir`)
+  - `src/bun/index.ts` (RPC `listThemes`, `getThemesCSS`, `installTheme`, `installThemeFromPath`, `getThemesDir`, watcher `startWatchingThemes`)
+  - `src/shared/types.ts` (`ThemeSummary`, mensajes `themesChanged`)
+  - `src/mainview/App.tsx` (`ThemeContext` dinámico, `FALLBACK_THEMES`, inyección de CSS)
+  - `src/mainview/components/ThemeMenu.tsx` (dinámico + instalar URL)
+  - `src/mainview/index.css` (fallback offline)
 - **Dependencias en `package.json`**:
-  - `lucide-react`
+  - Ninguna nueva (`Bun.TOML` nativo, `git` del sistema para clonar)
 - **Estado / Decisión**:
   - [ ] Mantener intacto
-  - [ ] Modificar (ej. reducir a 2 o 4 temas esenciales)
+  - [x] **Modificado (Motor TOML comunitario estilo Omarchy+VSCode)**
   - [ ] Quitar de raíz
 
 ---

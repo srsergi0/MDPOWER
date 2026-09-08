@@ -3,6 +3,16 @@ import { watch, type FSWatcher } from "fs";
 import { readdir } from "fs/promises";
 import { join, basename } from "path";
 import type { MarkdownReaderRPC, FileEntry } from "../shared/types";
+import {
+  listThemes,
+  summarizeThemes,
+  getAllThemesCSS,
+  installThemeFromUrl,
+  installThemeFromPath,
+  getUserThemesDir,
+  getBundledThemesCandidates,
+  invalidateThemesCache,
+} from "./themes";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -24,6 +34,31 @@ let currentWatchedPath: string | null = null;
 let currentFolderWatcher: FSWatcher | null = null;
 let currentWatchedFolder: string | null = null;
 let folderRescanTimeout: ReturnType<typeof setTimeout> | null = null;
+
+let themesWatcher: FSWatcher | null = null;
+let themesRescanTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function startWatchingThemes() {
+  if (themesWatcher) return;
+  const notify = async () => {
+    if (themesRescanTimeout) clearTimeout(themesRescanTimeout);
+    themesRescanTimeout = setTimeout(async () => {
+      try {
+        invalidateThemesCache();
+        const defs = await listThemes();
+        win?.webview.rpc?.send.themesChanged({ themes: summarizeThemes(defs) });
+      } catch { }
+    }, 400);
+  };
+  const watchDir = (dir: string) => {
+    try {
+      const w = watch(dir, { recursive: true }, () => notify()) as unknown as FSWatcher;
+      return w;
+    } catch { return null; }
+  };
+  const watchers = [watchDir(getUserThemesDir()), ...getBundledThemesCandidates().map(watchDir)].filter(Boolean) as FSWatcher[];
+  themesWatcher = watchers[0] ?? null;
+}
 
 
 async function scanDir(dir: string): Promise<FileEntry[]> {
@@ -273,6 +308,36 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
           return { success: false };
         }
       },
+      listThemes: async () => {
+        const defs = await listThemes();
+        return { themes: summarizeThemes(defs) };
+      },
+      getThemesCSS: async () => {
+        return { css: await getAllThemesCSS() };
+      },
+      installTheme: async ({ url }) => {
+        try {
+          const def = await installThemeFromUrl(url);
+          const defs = await listThemes();
+          win?.webview.rpc?.send.themesChanged({ themes: summarizeThemes(defs) });
+          return { success: true as const, id: def.id };
+        } catch (err) {
+          return { success: false as const, error: err instanceof Error ? err.message : String(err) };
+        }
+      },
+      installThemeFromPath: async ({ path }) => {
+        try {
+          const def = await installThemeFromPath(path);
+          const defs = await listThemes();
+          win?.webview.rpc?.send.themesChanged({ themes: summarizeThemes(defs) });
+          return { success: true as const, id: def.id };
+        } catch (err) {
+          return { success: false as const, error: err instanceof Error ? err.message : String(err) };
+        }
+      },
+      getThemesDir: async () => {
+        return { bundled: getBundledThemesCandidates()[0], user: getUserThemesDir() };
+      },
     },
     messages: {
       log: ({ msg }) => console.log("[View]", msg),
@@ -297,6 +362,7 @@ const win = new BrowserWindow({
 });
 
 win.webview.on("dom-ready", async () => {
+  startWatchingThemes();
   if (initialFilePath) {
     try {
       const file = Bun.file(initialFilePath);

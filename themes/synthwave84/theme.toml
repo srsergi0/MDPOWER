@@ -1,0 +1,58 @@
+# SynthWave '84 — tema de la comunidad MDPOWER
+# Copia esta carpeta a %APPDATA%/MDPOWER/themes/ (Windows) o ~/.config/MDPOWER/themes/ (Linux)
+# y aparecerá en el menú de temas. Ver themes/COMO-CREAR-TEMA.md
+
+[meta]
+id = "synthwave84"
+name = "SynthWave '84"
+mode = "dark"
+author = "MDPOWER"
+version = "1.0.0"
+
+# Paleta base estilo Omarchy: fuente única de verdad
+[colors]
+background = "#2b213a"
+foreground = "#f0eefe"
+accent = "#f92aad"
+muted = "#848bb3"
+darker_background = "#241b2f"
+
+# UI estilo VSCode workbench (puedes usar {background}, {foreground}, {accent}, {muted})
+[ui]
+bg-editor = "#2b213a"
+bg-sidebar = "#241b2f"
+bg-header = "#1d1525"
+text-main = "#f0eefe"
+text-muted = "#848bb3"
+border-main = "#372948"
+accent-blue = "#f92aad"
+accent-hover = "rgba(249, 42, 173, 0.15)"
+
+# Cómo renderiza el Markdown, no solo colores
+[markdown.h1]
+size = "2.3em"
+weight = "800"
+color = "{accent}"
+align = "center"
+
+[markdown.h2]
+size = "1.5em"
+weight = "700"
+color = "{accent}"
+
+[markdown.h3]
+size = "1.2em"
+weight = "700"
+color = "{foreground}"
+
+[markdown.code]
+bg = "{darker_background}"
+radius = "8px"
+
+[markdown.blockquote]
+border-left = "4px solid {accent}"
+italic = "true"
+
+[markdown.a]
+color = "{accent}"
+underline = "true"
