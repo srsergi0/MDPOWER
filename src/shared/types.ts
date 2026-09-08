@@ -19,7 +19,11 @@ export type MarkdownReaderRPC = {
       };
       getFileContent: {
         params: { path: string };
-        response: { content: string; filename: string };
+        response: { content: string; html: string; filename: string };
+      };
+      compileMarkdown: {
+        params: { markdown: string };
+        response: { html: string };
       };
       resolvePath: {
         params: { basePath: string; relativePath: string };
@@ -69,8 +73,8 @@ export type MarkdownReaderRPC = {
   webview: {
     requests: {};
     messages: {
-      initialFile: { path: string; content: string; filename: string };
-      fileChanged: { path: string; content: string };
+      initialFile: { path: string; content: string; html: string; filename: string };
+      fileChanged: { path: string; content: string; html: string };
       folderChanged: { files: FileEntry[] };
     };
   };

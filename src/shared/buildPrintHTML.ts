@@ -1,8 +1,3 @@
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkRehype from "remark-rehype";
-import rehypeStringify from "rehype-stringify";
 
 export type PrintOptions = {
   pageSize: "a4" | "letter" | "legal";
@@ -243,13 +238,14 @@ function addLineNumbers(html: string): string {
 }
 
 export async function markdownToHTML(markdown: string): Promise<string> {
-  const result = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeStringify)
-    .process(markdown);
-  return String(result);
+  return (Bun as any).markdown.html(markdown, {
+    tables: true,
+    strikethrough: true,
+    tasklists: true,
+    headings: { ids: true },
+    autolinks: true,
+    latexMath: true,
+  });
 }
 
 const STANDALONE_CSS = `

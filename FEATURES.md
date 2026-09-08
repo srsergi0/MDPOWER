@@ -7,25 +7,30 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
 ## 1. 📖 Visor y Renderizado Markdown
 
 - **Descripción**: 
-  - Renderizado compatible con GitHub Flavored Markdown (tablas, checklists solo lectura, citas, etc.).
-  - Resaltado de sintaxis para bloques de código fuente en múltiples lenguajes.
-  - Diagramas Mermaid interactivos con controles de zoom (rueda de ratón, botones), paneo drag & drop y reinicio de vista.
-  - Barra de migas de pan flotante (*Sticky Breadcrumb Bar*) que detecta la jerarquía de títulos (`H1 > H2 > H3`) según la posición del scroll y permite desplegar títulos hermanos y saltar a ellos con scroll suave.
+  - Compilación y análisis de Markdown de ultra-alto rendimiento ejecutada en Rust mediante el motor nativo de Bun (`Bun.markdown.render` / `Bun.markdown.html`).
+  - Renderizado compatible con GitHub Flavored Markdown (tablas GFM completas, checklists con checkboxes estilizados, citas de bloque, encabezados con IDs automáticos).
+  - Resaltado de sintaxis ligero y modular mediante `PrismJS` con soporte para TypeScript, JavaScript, Python, Bash, Rust, JSON, CSS, SQL, YAML y Markdown.
+  - Botón interactivo de copiado en cabecera de bloques de código ("Copy" / "Copied!").
+  - Diagramas Mermaid integrados con soporte nativo de bloques `.mermaid-block`.
   - Resolución y apertura de enlaces locales hacia otros archivos `.md` / `.markdown` dentro de pestañas de la app.
   - Resaltado visual pulsante (`highlight-pulse`) al navegar directamente a una línea objetivo desde la búsqueda.
 - **Archivos involucrados**:
+  - `src/bun/index.ts` (`compileMarkdownWithBun`, `Bun.markdown.render`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)
   - `src/mainview/components/MarkdownViewer.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\MarkdownViewer.tsx`)
   - `src/mainview/components/MermaidRenderer.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\MermaidRenderer.tsx`)
   - `src/mainview/index.css` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\index.css`)
 - **Dependencias en `package.json`**:
+  - `prismjs`
+  - `@types/prismjs`
+  - `mermaid`
+- **Dependencias eliminadas de raíz**:
   - `react-markdown`
   - `remark-gfm`
   - `react-syntax-highlighter`
   - `@types/react-syntax-highlighter`
-  - `mermaid`
 - **Estado / Decisión**:
   - [ ] Mantener intacto
-  - [ ] Modificar
+  - [x] **Modificado (Migrado a Bun.markdown en Rust)**
   - [ ] Quitar de raíz
 
 ---
@@ -147,19 +152,21 @@ Documento de referencia para auditoría, depuración y refactorización. Cada se
   - `src/mainview/components/SettingsModal.tsx` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\components\SettingsModal.tsx`)
   - `src/mainview/utils/print.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\mainview\utils\print.ts`)
   - `src/shared/buildPrintHTML.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\shared\buildPrintHTML.ts`)
-  - `src/bun/index.ts` (`savePdf`, `saveHtml`, `findChrome`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)
+  - `src/bun/index.ts` (`savePdf` con `Bun.WebView` y CDP, `saveHtml`) (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\src\bun\index.ts`)
   - `scripts/batch-pdf.ts` (`d:\Project\Web-Apps\LaTeX-Documentos\MDPOWER\scripts\batch-pdf.ts`)
 - **Dependencias en `package.json`**:
+  - Ninguna (100% vanilla con `Bun.WebView` y `Bun.markdown`).
+- **Dependencias eliminadas de raíz**:
   - `puppeteer-core`
   - `unified`
   - `remark-parse`
   - `remark-gfm`
   - `remark-rehype`
   - `rehype-stringify`
-- **Nota de impacto**: `puppeteer-core` requiere la presencia de Chrome o Edge instalado en la máquina del usuario.
+- **Nota de impacto**: Exportación 100% nativa sin librerías pesadas externas. Utiliza `Bun.WebView({ backend: "chrome" })` con el comando CDP `Page.printToPDF`, autodetectando Edge o Chrome del sistema.
 - **Estado / Decisión**:
   - [ ] Mantener intacto
-  - [ ] Modificar
+  - [x] **Modificado (100% Vanilla con Bun.WebView & Bun.markdown)**
   - [ ] Quitar de raíz
 
 ---

@@ -1,20 +1,6 @@
-import { readdir, readFile, mkdir, access } from "fs/promises";
+import { readdir, readFile, mkdir } from "fs/promises";
 import { join, relative } from "path";
-import puppeteer from "puppeteer-core";
 import { buildPrintHTML } from "../src/shared/buildPrintHTML";
-
-async function findChrome(): Promise<string | null> {
-  const candidates = [
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-  ];
-  for (const p of candidates) {
-    try { await access(p); return p; } catch {}
-  }
-  return null;
-}
 
 async function findMarkdownFiles(dir: string): Promise<string[]> {
   const results: string[] = [];
@@ -36,19 +22,14 @@ if (!inputDir) {
   process.exit(1);
 }
 
-const chromePath = await findChrome();
-if (!chromePath) {
-  console.error("Chrome or Edge not found.");
-  process.exit(1);
-}
-
 const outputDir = join(inputDir, "pdf_output");
 await mkdir(outputDir, { recursive: true });
 
 const files = await findMarkdownFiles(inputDir);
-console.log(`Found ${files.length} markdown files. Converting to PDF...`);
+console.log(`Found ${files.length} markdown files. Converting to PDF with native Bun.WebView...`);
 
-const browser = await puppeteer.launch({ headless: true, executablePath: chromePath });
+const WebView = (Bun as any).WebView;
+const view = new WebView({ backend: "chrome" });
 
 for (const filePath of files) {
   const relPath = relative(inputDir, filePath);
@@ -66,17 +47,14 @@ for (const filePath of files) {
     tableOfContents: false,
   });
 
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "load" });
-  await page.pdf({
-    path: pdfPath,
-    format: "A4",
+  await view.navigate("data:text/html," + encodeURIComponent(html));
+  const result = await view.cdp("Page.printToPDF", {
     printBackground: true,
-    margin: { top: "25.4mm", bottom: "25.4mm", left: "25.4mm", right: "25.4mm" },
+    preferCSSPageSize: true,
   });
-  await page.close();
+  await Bun.write(pdfPath, Buffer.from((result as any).data, "base64"));
   console.log(`  ✓ ${pdfName}`);
 }
 
-await browser.close();
+view.close();
 console.log(`\nDone! ${files.length} PDFs saved to: ${outputDir}`);

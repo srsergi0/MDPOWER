@@ -74,6 +74,7 @@ function App() {
   const [tabs, setTabs] = useState<Tab[]>(() => savedSession?.tabs || []);
   const [activeTabId, setActiveTabId] = useState<string | null>(() => savedSession?.activeTabId || null);
   const [tabContents, setTabContents] = useState<Record<string, string>>({});
+  const [tabHtmls, setTabHtmls] = useState<Record<string, string>>({});
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => savedSession?.sidebarOpen ?? false);
   const [sidebarFiles, setSidebarFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -158,26 +159,29 @@ function App() {
       handlers: {
         requests: {},
         messages: {
-          initialFile: ({ path, content, filename }) => {
+          initialFile: ({ path, content, html, filename }) => {
             const id = `tab-${++tabCounter}`;
             setTabs((prev) => {
               const existing = prev.find((t) => t.path === path);
               if (existing) {
                 setActiveTabId(existing.id);
                 setTabContents((c) => ({ ...c, [existing.id]: content }));
+                setTabHtmls((h) => ({ ...h, [existing.id]: html }));
                 return prev;
               }
               return [...prev, { id, path, filename }];
             });
             setActiveTabId(id);
             setTabContents((prev) => ({ ...prev, [id]: content }));
+            setTabHtmls((prev) => ({ ...prev, [id]: html }));
             electroviewRef.current?.proxy.request.startWatching({ path });
           },
-          fileChanged: ({ path, content }) => {
+          fileChanged: ({ path, content, html }) => {
             setTabs((prev) => {
               const tab = prev.find((t) => t.path === path);
               if (tab && tab.id === activeTabRef.current) {
                 setTabContents((c) => ({ ...c, [tab.id]: content }));
+                setTabHtmls((h) => ({ ...h, [tab.id]: html }));
               }
               return prev;
             });
@@ -213,12 +217,14 @@ function App() {
 
         if (savedTabs && savedTabs.length > 0) {
           const contents: Record<string, string> = {};
+          const htmls: Record<string, string> = {};
           await Promise.all(
             savedTabs.map(async (tab: any) => {
               try {
                 const res = await rpc.proxy.request.getFileContent({ path: tab.path });
                 if (res) {
                   contents[tab.id] = res.content;
+                  htmls[tab.id] = res.html;
                 }
               } catch (e) {
                 console.error("Failed to restore tab content:", tab.path, e);
@@ -227,6 +233,7 @@ function App() {
           );
           
           setTabContents((prev) => ({ ...contents, ...prev }));
+          setTabHtmls((prev) => ({ ...htmls, ...prev }));
 
           // Watch active file, only if it's still the active tab
           if (savedActiveTabId && activeTabRef.current === savedActiveTabId) {
@@ -294,7 +301,21 @@ function App() {
   }, [updateInfo]);
 
   const activeContent = activeTabId ? tabContents[activeTabId] || "" : "";
+  const activeHtml = activeTabId ? tabHtmls[activeTabId] || "" : "";
   const activeFile = tabs.find((t) => t.id === activeTabId) || null;
+
+  // Auto-compile if content exists but HTML has not yet been populated
+  useEffect(() => {
+    if (activeTabId && activeContent && !tabHtmls[activeTabId]) {
+      electroviewRef.current?.proxy.request.compileMarkdown({ markdown: activeContent })
+        .then((res: { html: string }) => {
+          if (res?.html) {
+            setTabHtmls((prev) => ({ ...prev, [activeTabId]: res.html }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [activeTabId, activeContent, tabHtmls]);
 
   const openFileByPath = useCallback(
     async (filePath: string, filename?: string) => {
@@ -311,6 +332,7 @@ function App() {
       setTabs((prev) => [...prev, { id, path: filePath, filename: filename || result.filename }]);
       setActiveTabId(id);
       setTabContents((prev) => ({ ...prev, [id]: result.content }));
+      setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
       view.proxy.request.startWatching({ path: filePath });
     },
     [tabs],
@@ -330,6 +352,9 @@ function App() {
         setTabs((prev) => [...prev, { id, path: entry.path, filename: entry.name }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: entry.content! }));
+        view.proxy.request.compileMarkdown({ markdown: entry.content! }).then((res: { html: string }) => {
+          if (res?.html) setTabHtmls((prev) => ({ ...prev, [id]: res.html }));
+        });
         return;
       }
       const result = await view.proxy.request.getFileContent({ path: entry.path });
@@ -338,6 +363,7 @@ function App() {
       setTabs((prev) => [...prev, { id, path: entry.path, filename: result.filename }]);
       setActiveTabId(id);
       setTabContents((prev) => ({ ...prev, [id]: result.content }));
+      setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
       view.proxy.request.startWatching({ path: entry.path });
     },
     [tabs],
@@ -397,6 +423,10 @@ function App() {
         return remaining;
       });
       setTabContents((prev) => {
+        const { [tabId]: _, ...rest } = prev;
+        return rest;
+      });
+      setTabHtmls((prev) => {
         const { [tabId]: _, ...rest } = prev;
         return rest;
       });
@@ -493,6 +523,7 @@ function App() {
         setTabs((prev) => [...prev, { id, path: resolvedPath, filename: result.filename }]);
         setActiveTabId(id);
         setTabContents((prev) => ({ ...prev, [id]: result.content }));
+        setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
         view.proxy.request.startWatching({ path: resolvedPath });
       } catch (err) {
         console.error("Failed to open link:", err);
@@ -726,12 +757,13 @@ function App() {
                 }
                 const view = electroviewRef.current;
                 if (!view) return;
-                view.proxy.request.getFileContent({ path }).then((result: { content: string; filename: string }) => {
+                view.proxy.request.getFileContent({ path }).then((result: { content: string; html: string; filename: string }) => {
                   if (!result) return;
                   const id = `tab-${++tabCounter}`;
                   setTabs((prev) => [...prev, { id, path, filename: result.filename }]);
                   setActiveTabId(id);
                   setTabContents((prev) => ({ ...prev, [id]: result.content }));
+                  setTabHtmls((prev) => ({ ...prev, [id]: result.html }));
                   view.proxy.request.startWatching({ path });
                 });
               }}
@@ -771,6 +803,7 @@ function App() {
             <main className="flex-1 overflow-auto">
               <MarkdownViewer
                 content={activeContent}
+                html={activeHtml}
                 onOpenLink={handleOpenLink}
                 scrollToLine={scrollTarget && scrollTarget.path === activeFile?.path ? scrollTarget : null}
               />

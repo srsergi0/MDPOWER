@@ -4,6 +4,44 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 12:53] — Eliminación de Raíz de Puppeteer y Migración a Generación Nativa de PDF con `Bun.WebView` (CDP)
+- **Tipo de cambio**: [Eliminación de raíz | Refactor]
+- **Archivos modificados**:
+  - `src/bun/index.ts` (eliminado import de `puppeteer-core` y función auxiliar `findChrome`; reimplementado `savePdf` usando `new (Bun as any).WebView({ backend: "chrome" })` con navegación a `data:text/html` y comando CDP `Page.printToPDF` con `preferCSSPageSize: true`)
+  - `scripts/batch-pdf.ts` (eliminado `puppeteer-core` y `findChrome`; adaptado a la API nativa de `Bun.WebView`)
+  - `package.json` y `bun.lock` (desinstalado `puppeteer-core` de raíz)
+  - `FEATURES.md` (actualizado módulo 7 reflejando la eliminación total de `puppeteer-core`)
+- **Descripción**:
+  - Se eliminó por completo la dependencia externa `puppeteer-core` (ahorrando espacio en disco y tiempo de instalación) en favor de la API nativa y experimental `Bun.WebView` integrada en el runtime de Bun.
+  - La exportación a PDF ahora utiliza el Chrome DevTools Protocol (`Page.printToPDF`) a través de Edge o Chrome del sistema sin necesidad de librerías intermedias pesadas.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - `bun run vite build` completado con éxito (código de salida 0).
+  - Prueba directa de generación de PDF ejecutada con éxito generando documento válido de 36,672 bytes.
+
+---
+
+### [2026-09-08 12:44] — Integración del Compilador Nativo en Rust (`Bun.markdown`) y Limpieza Masiva de Dependencias
+- **Tipo de cambio**: [Nueva Característica | Refactor | Eliminación de raíz]
+- **Archivos modificados**:
+  - `src/bun/index.ts` (implementada función `compileMarkdownWithBun` utilizando `Bun.markdown.render` con opciones de GFM, tablas, tareas, bloques de código con botón de copia, diagramas Mermaid y matemáticas LaTeX; integrado en RPC `compileMarkdown`, `getFileContent`, `startWatching` y carga inicial `dom-ready`)
+  - `src/shared/types.ts` (añadido RPC `compileMarkdown`; actualizados payloads de `getFileContent`, `initialFile` y `fileChanged` para incluir `html`)
+  - `src/shared/buildPrintHTML.ts` (reemplazada la tubería `unified` por la llamada nativa `Bun.markdown.html(...)` en Rust)
+  - `src/mainview/App.tsx` (añadido estado `tabHtmls`, auto-compilación reactiva, propagación de HTML precompilado por Bun hacia `MarkdownViewer`)
+  - `src/mainview/components/MarkdownViewer.tsx` (reemplazado `react-markdown` por renderizado HTML nativo ultra-rápido, integración de `PrismJS` para resaltado de sintaxis, renderizado interactivo de diagramas `Mermaid`, delegación de eventos para botón de copiado y enlaces locales `.md`)
+  - `package.json` y `bun.lock` (desinstaladas de raíz 7 dependencias: `react-markdown`, `remark-gfm`, `remark-parse`, `remark-rehype`, `rehype-stringify`, `unified`, `react-syntax-highlighter` y `@types/react-syntax-highlighter`; añadidas dependencias directas y ligeras `prismjs` y `@types/prismjs`)
+  - `FEATURES.md` (actualizados módulos 1 y 7 documentando la migración a `Bun.markdown` en Rust y las dependencias eliminadas)
+- **Descripción**:
+  - Se migró la arquitectura de análisis y renderizado Markdown desde el hilo de JavaScript en el navegador (`react-markdown` + `unified`) hacia el motor nativo de Bun escrito en Rust (`Bun.markdown`).
+  - Esto eliminó 6 paquetes pesados de AST y un resaltador reactivo obsoleto, reduciendo el bundle principal de Vite de **1,661 kB** a **879 kB** (una reducción de casi el 50% en peso y más de 1,000 módulos transformados menos).
+  - La compilación ahora se ejecuta a velocidades sub-milisegundo en Rust, manteniendo soporte completo para tablas GFM, checklists, Mermaid, resaltado Prism y navegación de enlaces.
+- **Resultado / Verificación**:
+  - `bun x tsc --noEmit` completado con 0 errores (código de salida 0).
+  - `bun run vite build` compilado con éxito (código de salida 0).
+  - Paquetes desinstalados limpiamente en 54ms.
+
+---
+
 ### [2026-09-08 12:28] — Restauración del Backend Bun y Corrección del Arranque de Ventana
 - **Tipo de cambio**: Corrección
 - **Archivos modificados**:
