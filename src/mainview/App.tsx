@@ -79,7 +79,6 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => savedSession?.sidebarOpen ?? false);
   const [sidebarFiles, setSidebarFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsMode, setSettingsMode] = useState<ExportMode>("print");
@@ -188,9 +187,6 @@ function App() {
           },
           folderChanged: ({ files }) => {
             setSidebarFiles(files);
-          },
-          windowMaximized: ({ isMaximized: max }) => {
-            setIsMaximized(max);
           },
         },
       },
@@ -645,7 +641,7 @@ function App() {
 
   return (
     <ThemeContext.Provider value={{ theme, themeId, setThemeId: handleSetThemeId, toggleTheme }}>
-      <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)]">
+      <div className="h-screen flex flex-col bg-[var(--bg-editor)] text-[var(--text-main)] theme-transition">
         <TopBar
           onOpenFile={handleOpenFile}
           onOpenFolder={handleOpenFolder}
@@ -654,22 +650,17 @@ function App() {
           activeFile={activeFile?.path || null}
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => {
-            setSidebarOpen((p) => {
-              const next = !p;
-              if (next && lastFolderPath.current && !watchedFolderRef.current) {
-                const view = electroviewRef.current;
-                if (view) {
-                  watchedFolderRef.current = lastFolderPath.current;
-                  view.proxy.request.startWatchingFolder({ path: lastFolderPath.current });
-                }
+            const next = !sidebarOpen;
+            setSidebarOpen(next);
+            if (next && lastFolderPath.current && !watchedFolderRef.current) {
+              const view = electroviewRef.current;
+              if (view) {
+                watchedFolderRef.current = lastFolderPath.current;
+                view.proxy.request.startWatchingFolder({ path: lastFolderPath.current }).catch(() => {});
               }
-              return next;
-            });
+            }
           }}
           onExportSelect={handleOpenSettings}
-          electroview={electroviewRef.current}
-          isMaximized={isMaximized}
-          onMaximizedChange={setIsMaximized}
           hasFolder={hasFolder}
           searchOpen={searchOpen}
           onToggleSearch={useCallback(() => {

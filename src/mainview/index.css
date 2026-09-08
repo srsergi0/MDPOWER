@@ -186,11 +186,21 @@ html, body, #root {
   overflow: hidden;
 }
 
-/* Smooth global transitions for themes */
-*, *::before, *::after {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-  transition-duration: 300ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Theme switching transition: only on themed containers, short and
+   without delay, so button press/hover feedback stays instant.
+   (Before: `* { transition-duration: 300ms }` made every click feel laggy.) */
+.theme-transition,
+.theme-transition * {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition * {
+    transition: none;
+  }
 }
 
 body {

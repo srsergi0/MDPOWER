@@ -53,18 +53,6 @@ export type MarkdownReaderRPC = {
         params: {};
         response: {};
       };
-      minimizeWindow: {
-        params: {};
-        response: {};
-      };
-      toggleMaximizeWindow: {
-        params: {};
-        response: { isMaximized: boolean };
-      };
-      closeWindow: {
-        params: {};
-        response: {};
-      };
       searchInFolder: {
         params: { path: string; query: string };
         response: { path: string; filename: string; line: number; content: string }[];
@@ -81,7 +69,6 @@ export type MarkdownReaderRPC = {
     messages: {
       log: { msg: string };
       folderChanged: { files: FileEntry[] };
-      windowMaximized: { isMaximized: boolean };
     };
   };
   webview: {

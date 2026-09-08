@@ -11,7 +11,7 @@ export default {
 			"dist/index.html": "views/mainview/index.html",
 			"dist/assets": "views/mainview/assets",
 		},
-		watchIgnore: ["dist/**"],
+		watchIgnore: ["dist/**", "build/**", "node_modules/**", ".git/**", "artifacts/**"],
 		mac: {
 			bundleCEF: false,
 			icons: "src/assets/icon.iconset",

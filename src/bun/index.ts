@@ -312,22 +312,6 @@ const rpc = BrowserView.defineRPC<MarkdownReaderRPC>({
         currentWatchedFolder = null;
         return {};
       },
-      minimizeWindow: async () => {
-        win?.minimize();
-        return {};
-      },
-      toggleMaximizeWindow: async () => {
-        if (!win) return { isMaximized: false };
-        const maximized = win.isMaximized();
-        if (maximized) win.unmaximize();
-        else win.maximize();
-        return { isMaximized: !maximized };
-      },
-      closeWindow: async () => {
-        win?.close();
-        return {};
-      },
-
       savePdf: async ({ markdown, filename, options }) => {
         let browser;
         try {
@@ -409,7 +393,7 @@ const url = await getMainViewUrl();
 const win = new BrowserWindow({
   title: "Markdown Reader",
   url,
-  titleBarStyle: "hiddenInset",
+  titleBarStyle: "default",
   frame: {
     width: 1000,
     height: 750,
@@ -417,13 +401,6 @@ const win = new BrowserWindow({
     y: 200,
   },
   rpc,
-});
-
-win.on("maximize", () => {
-  win.webview.rpc?.send.windowMaximized({ isMaximized: true });
-});
-win.on("unmaximize", () => {
-  win.webview.rpc?.send.windowMaximized({ isMaximized: false });
 });
 
 win.webview.on("dom-ready", async () => {

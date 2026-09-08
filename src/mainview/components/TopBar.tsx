@@ -1,4 +1,4 @@
-import { Minus, Square, X, PanelLeft, PanelLeftClose, PanelLeftOpen, File, FolderOpen, Eye, PenSquare, Search } from "lucide-react";
+import { PanelLeft, PanelLeftClose, PanelLeftOpen, File, FolderOpen, Eye, PenSquare, Search } from "lucide-react";
 import ExportMenu from "./ExportMenu";
 import type { ExportMode } from "./SettingsModal";
 import ThemeMenu from "./ThemeMenu";
@@ -12,16 +12,12 @@ type Props = {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   onExportSelect: (mode: ExportMode) => void;
-  electroview: any;
-  onMaximizedChange: (maximized: boolean) => void;
-  isMaximized: boolean;
   hasFolder: boolean;
   searchOpen: boolean;
   onToggleSearch: () => void;
 };
 
 const btn = "p-2 rounded-md transition-colors active:scale-95";
-const winBtn = "flex items-center justify-center w-[46px] h-full transition-colors active:scale-95";
 
 export default function TopBar({
   onOpenFile,
@@ -32,9 +28,6 @@ export default function TopBar({
   sidebarOpen,
   onToggleSidebar,
   onExportSelect,
-  electroview,
-  isMaximized,
-  onMaximizedChange,
   hasFolder,
   searchOpen,
   onToggleSearch,
@@ -45,38 +38,18 @@ export default function TopBar({
   const iconColor = "text-[var(--text-muted)]";
   const iconHover = "hover:bg-[var(--accent-hover)] hover:text-[var(--text-main)]";
   const activeBg = "bg-[var(--accent-hover)]";
-  const winIcon = "text-[var(--text-muted)] hover:text-[var(--text-main)]";
-  const winHover = "hover:bg-[var(--accent-hover)]";
-  const closeHover = "hover:bg-red-500/95";
-  const closeText = "text-[var(--text-muted)] hover:text-white";
-
-  const handleMinimize = () => electroview?.proxy?.request?.minimizeWindow?.({});
-  const handleMaximize = async () => {
-    const res = await electroview?.proxy?.request?.toggleMaximizeWindow?.({});
-    if (res) onMaximizedChange(res.isMaximized);
-  };
-  const handleClose = () => electroview?.proxy?.request?.closeWindow?.({});
 
   return (
     <div
       className={`relative flex items-center h-[38px] ${bg} ${border} ${textColor} select-none`}
-      style={{ appRegion: "drag" } as any}
     >
-      {/* Top resize border spacer (allows Windows window resizing from the top edge) */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[4px] z-50 cursor-ns-resize"
-        style={{ appRegion: "no-drag" } as any}
-      />
-
       <div
         className="flex items-center gap-1 px-2 flex-1 min-w-0"
-        style={{ appRegion: "drag" } as any}
       >
         <button
           onClick={onToggleSidebar}
           aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           className={`group ${btn} ${sidebarOpen ? activeBg : iconHover} ${sidebarOpen ? textColor : iconColor}`}
-          style={{ appRegion: "no-drag" } as any}
         >
           {sidebarOpen ? (
             <>
@@ -95,7 +68,6 @@ export default function TopBar({
           onClick={onOpenFile}
           aria-label="Open file"
           className={`${btn} ${iconHover} ${iconColor}`}
-          style={{ appRegion: "no-drag" } as any}
         >
           <File className="w-4 h-4" />
         </button>
@@ -103,7 +75,6 @@ export default function TopBar({
           onClick={onOpenFolder}
           aria-label="Open folder"
           className={`${btn} ${iconHover} ${iconColor}`}
-          style={{ appRegion: "no-drag" } as any}
         >
           <FolderOpen className="w-4 h-4" />
         </button>
@@ -119,7 +90,6 @@ export default function TopBar({
               ? `${activeBg} ${textColor}`
               : `${iconHover} ${iconColor}`
           }`}
-          style={{ appRegion: "no-drag" } as any}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -130,39 +100,16 @@ export default function TopBar({
               onClick={onToggleEdit}
               aria-label={isEditing ? "View rendered" : "Edit source"}
               className={`${btn} ${isEditing ? activeBg : iconHover} ${isEditing ? textColor : iconColor}`}
-              style={{ appRegion: "no-drag" } as any}
             >
               {isEditing ? <Eye className="w-4 h-4" /> : <PenSquare className="w-4 h-4" />}
             </button>
           </>
         )}
       </div>
-      <div className="flex items-center h-full" style={{ appRegion: "no-drag" } as any}>
+      <div className="flex items-center h-full pr-1">
         <ExportMenu onSelect={onExportSelect} disabled={!activeFile} />
         <div className="w-px h-4 bg-[var(--border-main)] mx-1" aria-hidden="true" />
         <ThemeMenu />
-        <div className="w-px h-4 bg-[var(--border-main)] mx-1" aria-hidden="true" />
-        <button
-          onClick={handleMinimize}
-          aria-label="Minimize"
-          className={`${winBtn} ${winHover} ${winIcon}`}
-        >
-          <Minus className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={handleMaximize}
-          aria-label={isMaximized ? "Restore" : "Maximize"}
-          className={`${winBtn} ${winHover} ${winIcon}`}
-        >
-          <Square className="w-3 h-3" />
-        </button>
-        <button
-          onClick={handleClose}
-          aria-label="Close"
-          className={`${winBtn} ${closeHover} ${closeText}`}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
       </div>
     </div>
   );

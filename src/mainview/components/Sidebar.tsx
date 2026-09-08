@@ -111,7 +111,7 @@ export default function Sidebar({ files, activePath, onSelectFile, open }: Props
     <div
       role="tree"
       aria-label="File explorer"
-      className={`flex-shrink-0 h-full bg-[var(--bg-sidebar)]/95 backdrop-blur-md flex flex-col select-none relative transition-all duration-300 ease-in-out ${
+      className={`flex-shrink-0 h-full bg-[var(--bg-sidebar)] flex flex-col select-none relative transition-[width,opacity] duration-150 ease-out ${
         open
           ? "w-64 border-r border-[var(--border-main)] opacity-100"
           : "w-0 border-r-0 opacity-0 pointer-events-none overflow-hidden"
