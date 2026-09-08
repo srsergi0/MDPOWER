@@ -4,6 +4,18 @@ Registro cronológico de todas las modificaciones, refactorizaciones, adiciones 
 
 ---
 
+### [2026-09-08 17:15] — Fix release CI (build:prod multiplataforma) + v1.0.4
+- **Tipo de cambio**: [Corrección | Release]
+- **Archivos modificados**:
+  - `package.json` (1.0.3 → 1.0.4, `build:prod` sin `fix-icons.ps1`, nuevo `build:prod:win` solo Windows)
+  - `electrobun.config.ts` (1.0.3 → 1.0.4)
+  - `.github/workflows/release.yml` (artefacto Windows `artifacts/**/*`)
+- **Descripción**:
+  - Causa del fallo v1.0.3: `build:prod` encadenaba `powershell ... fix-icons.ps1` en los 3 runners. En Linux/macOS no existe `powershell` (exit 127) y en Windows electrobun ya mueve/limpia `build/stable-win-x64/temp-icon.ico` tras "moving artifacts...", así que el script lanzaba `icon not found` (exit 1). Electrobun 1.18.1 ya incrusta el icono nativamente (logs: Successfully embedded icon), por lo que el workaround es redundante en CI.
+  - `build:prod` ahora es `vite build && electrobun build --env=stable` (multiplataforma); el fix de iconos queda solo en `build:prod:win` para uso local en Windows.
+- **Resultado / Verificación**:
+  - `bunx tsc --noEmit` 0 errores. Tag `v1.0.4` relanza Win/Mac/Linux.
+
 ### [2026-09-08 17:00] — Release v1.0.3 (enlaces md en nueva pestaña)
 - **Tipo de cambio**: [Release]
 - **Archivos modificados**:
